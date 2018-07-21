@@ -1,29 +1,31 @@
 <template>
   <div class="mainer">
     <!--<div class="header">-->
-      <!--<span class="item">爱拓客体验店</span>-->
+    <!--<span class="item">爱拓客体验店</span>-->
     <!--</div>-->
     <div class="page-cont">
       <div class="top">
-        <div class="main">
-          <img class="main-logo" src="../../static/logo1@3x.png" alt="logo">
+        <div class="main" @click="isShow">
+          <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
           <div class="main-font">注册会员，享受更多优惠</div>
-          <img class="right-logo" src="../../static/logo2@3x.png" alt="logo">
+          <img class="right-logo" src="/static/logo2@3x.png" alt="logo">
         </div>
+        <!--card组件用来输入金额-->
         <div class="wrap">
           <div class="mainer">
             <div class="pay-font">消费金额</div>
             <div class="pay-icon">
               <div class="icon">¥</div>
-              <input v-model="money"  class="pay-input"/>
+              <input v-model="money" class="pay-input"/>
             </div>
           </div>
           <div class="footer">
-            <input class="footer-input" placeholder="添加备注" />
-            <img class="footer-logo" src="../../static/logo3@3x.png" alt="logo"/>
+            <input class="footer-input" placeholder="添加备注"/>
+            <img class="footer-logo" src="/static/logo3@3x.png" alt="logo"/>
           </div>
         </div>
       </div>
+      <!--底部键盘-->
       <div class="keword" @click.stop='_handleKeyPress'>
         <div class="left">
           <div class="ul">
@@ -44,14 +46,26 @@
           <div class="ul border-bottom">
             <div class="li" data-num='00'>00</div>
             <div class="li" data-num='0'>0</div>
-            <div class="li" data-num='.'>.</div>
+            <div class="li" style="line-height: 1.9rem" data-num='.'>.</div>
           </div>
         </div>
         <div class="right">
           <div class="cancel" data-num='D'>
-            <img width="26px"  src="../../static/logo4@3x.png" data-num='D'>
+            <img class="cancel-logo" src="../../static/logo4@3x.png" data-num='D'>
           </div>
           <div class="sure" data-num='S'>确定</div>
+        </div>
+      </div>
+    </div>
+    <!--弹出框-->
+    <div class="modal-mask" v-if="hiddenModal" catchtouchmove="preventTouchMove">
+      <div class="modal-dialog" v-if="hiddenModal">
+        <div class="modal-title">请注意</div>
+        <div class="modal-font">请注意:为了保证企业HR和学生更快</div>
+        <div class="modal-font">速、及时沟通,本群实时聊天只开发</div>
+        <div class="modal-time">24小时。</div>
+        <div class="modal-footer">
+          <div class="btn-confirm">我知道了</div>
         </div>
       </div>
     </div>
@@ -61,19 +75,21 @@
 
 
   export default {
-    data(){
-      return{
-        money : ''
+    data() {
+      return {
+        money: '',
+        hiddenModal: false
       }
     },
     components: {},
     methods: {
+      isShow() {
+        this.hiddenModal = true
+      },
       //处理按键
       _handleKeyPress(e) {
         let num = e.target.dataset.num;
-
         //不同按键处理逻辑
-
         switch (String(num)) {
           //小数点
           case '.':
@@ -82,10 +98,6 @@
           //删除键
           case 'D':
             this._handleDeleteKey();
-            break;
-          //清空键
-          case 'C':
-            this._handleClearKey();
             break;
           //确认键
           case 'S':
@@ -118,16 +130,12 @@
         this.money = S.substring(0, S.length - 1);
 
       },
-      //处理清空键
-      _handleClearKey() {
-        this.money = '';
-      },
       //处理数字
       _handleNumberKey(num) {
         let S = this.money;
 
         //如果有小数点且小数点位数不小于2
-        if ( S.indexOf('.') > -1 && S.substring(S.indexOf('.') + 1).length < 2)
+        if (S.indexOf('.') > -1 && S.substring(S.indexOf('.') + 1).length < 2)
           this.money = S + num;
 
 
@@ -149,8 +157,8 @@
       _handleConfirmKey() {
         let S = this.money;
         //未输入
-        if (!S.length){
-          alert( '您目前未输入!' )
+        if (!S.length) {
+          alert('您目前未输入!')
           return false;
         }
         //将 8. 这种转换成 8.00
@@ -158,11 +166,11 @@
           S = Number(S.substring(0, S.length - 1)).toFixed(2);
         //保留两位
         S = Number(S).toFixed(2);
-        this.$emit('confirmEvent',S)
+        this.$emit('confirmEvent', S)
       }
     }
 
-    }
+  }
 
 </script>
 
@@ -205,24 +213,26 @@
       }
 
       & .right-logo {
-        width: 0.8rem;
-        height: 0.8rem;
+        width: 0.4rem;
+        height: 0.75rem;
         position: fixed;
-        right: 0.8rem;
+        right: 0.9rem;
         color: white;
       }
     }
   }
-  .page-cont{
+
+  .page-cont {
     display: flex;
-    flex-direction:column;
+    flex-direction: column;
     height: 100%;
   }
-  .top{
 
+  .top {
     flex: 1;
     width: 100%;
   }
+
   .wrap {
     border-radius: 0.25rem;
     background-color: white;
@@ -232,85 +242,147 @@
       border-bottom: 1px solid #f0f0f0;
       & .pay-font {
         color: #12263c;
-        font-size: 16px;
+        font-size: 0.8rem;
       }
       & .pay-icon {
         display: flex;
-        & .pay-input{
+        & .pay-input {
           padding-left: 0.5rem;
-          width:100%;
-          border:none;
-          outline:medium;
-          font-size:50px;
+          width: 100%;
+          border: none;
+          outline: medium;
+          font-size: 50px;
         }
         & .icon {
           margin-left: 0.25rem;
           margin-top: 0.75rem;
           margin-bottom: 0.75rem;
-          font-size: 26px;
+          font-size: 1.3rem;
         }
       }
 
     }
     & .footer {
       margin-top: 0.75rem;
-      font-size: 14px;
+      font-size: 0.7rem;
       color: #afbcc9;
       display: flex;
-      & .footer-input{
-        width:100%;
-        border:none;
-        outline:medium;
-        color:#12263c;
-        font-size:14px;
+      & .footer-input {
+        width: 100%;
+        border: none;
+        outline: medium;
+        color: #12263c;
+        font-size: 0.7rem;
       }
-      & .footer-logo{
+      & .footer-logo {
         width: 0.8rem;
         height: 0.8rem;
       }
     }
   }
-  .keword{
+  .keword {
     background-color: white;
     display: flex;
-    height: 204px;
+    height: 10.2rem;
   }
-  .right{
-    width: 100px;
+  .right {
+    width: 5rem;
   }
-  .left{
+  .left {
     flex: 1;
   }
-  .ul{
+  .ul {
     display: flex;
   }
-  .border-bottom{
-    border-bottom:1px solid #f5f5f5;
+
+  .border-bottom {
+    border-bottom: 1px solid #f5f5f5;
   }
-  .li{
+
+  .li {
     flex: 1;
     text-align: center;
-    height: 51px;
-    line-height: 51px;
-    font-size: 25px;
+    height: 2.55rem;
+    line-height: 2.55rem;
+    font-size: 1.25rem;
     color: #12263c;
     border: 1px solid #f5f5f5;
     border-left: none;
     border-bottom: none;
   }
-  .cancel{
-    border-top:1px solid #f5f5f5;
+
+  .cancel {
+    border-top: 1px solid #f5f5f5;
     text-align: center;
     color: #12263c;
-    height: 102px;
-    line-height: 102px;
-    font-size: 25px;
+    height: 5.1rem;
+    line-height: 5.1rem;
+    font-size: 1.25rem;
+    & .cancel-logo {
+      width: 1.3rem;
+      height: 1.3rem;
+    }
   }
-  .sure{
+
+  .sure {
     background-color: #d43b33;
     text-align: center;
     color: #fff;
-    height: 102px;
-    line-height: 102px;
+    height: 5.1rem;
+    line-height: 5.1rem;
+  }
+
+  /*弹出框样式*/
+  .modal-mask {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 9000;
+    & .modal-dialog {
+      width: 268px;
+      overflow: hidden;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      margin: -90px 52px;
+      & .modal-font {
+        font-size: 13px;
+        color: #6d6d6d;
+        margin-left: 35px;
+        margin-top: 8px;
+      }
+      & .modal-time {
+        font-size: 13px;
+        color: #e51c23;
+        margin-left: 35px;
+      }
+      & .modal-title {
+        padding-top: 25px;
+        font-size: 16px;
+        color: #101010;
+        font-weight: bold;
+        text-align: center;
+      }
+      & .modal-footer {
+        margin-top: 30px;
+        display: flex;
+        flex-direction: row;
+        height: 43px;
+        border-top: 1px solid #dedede;
+        line-height: 43px;
+        & .btn-confirm {
+          width: 100%;
+          text-align: center;
+          font-size: 14px;
+          color: #515151;
+        }
+      }
+    }
   }
 </style>
