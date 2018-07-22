@@ -6,8 +6,10 @@
     <div class="page-cont">
       <div class="top">
         <div class="main" @click="isShow">
-          <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
-          <div class="main-font">注册会员，享受更多优惠</div>
+          <div class="main-container">
+            <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
+            <span class="main-font">注册会员，享受更多优惠</span>
+          </div>
           <img class="right-logo" src="/static/logo2@3x.png" alt="logo">
         </div>
         <!--card组件用来输入金额-->
@@ -83,6 +85,12 @@
     },
     components: {},
     methods: {
+      // init(){
+      //   let that = this;
+      //   that.$HTTP.get(this.$API.index,{},function (res) {
+      //     console.log(res)
+      //   })
+      // },
       isShow() {
         this.hiddenModal = true
       },
@@ -168,8 +176,10 @@
         S = Number(S).toFixed(2);
         this.$emit('confirmEvent', S)
       }
+    },
+    created() {
+      // this.init()
     }
-
   }
 
 </script>
@@ -199,24 +209,28 @@
       width: 100%;
       height: 2rem;
       display: flex;
+      line-height: 2rem;
+      justify-content: space-between;
       align-items: center;
-      & .main-logo {
-        position: fixed;
-        left: 0.5rem;
-        width: 1rem;
-        height: 1rem;
+      padding:0 0.5rem;
+      & .main-container{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        & .main-logo {
+          width: 1rem;
+          height: 1rem;
+        }
+        & .main-font {
+          padding-left: 0.5rem;
+          color: white;
+          font-size: 0.8rem;
+        }
       }
-      & .main-font {
-        margin-left: 2rem;
-        color: white;
-        font-size: 0.8rem;
-      }
-
       & .right-logo {
+        padding-right: 1.5rem;
         width: 0.4rem;
         height: 0.75rem;
-        position: fixed;
-        right: 0.9rem;
         color: white;
       }
     }
