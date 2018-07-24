@@ -5,7 +5,7 @@
     <!--</div>-->
     <div class="page-cont">
       <div class="top">
-        <div class="main" @click="isShow">
+        <div class="main" @click="isShow" v-show="isHide">
           <div class="main-container">
             <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
             <span class="main-font">注册会员，享受更多优惠</span>
@@ -21,9 +21,16 @@
               <input v-model="money" class="pay-input"/>
             </div>
           </div>
+          <div class="center" v-show="isHideOnSave" @click="isShowModal">
+            <div class="center-font">优惠卷</div>
+            <img class="center-logo" src="/static/logo2@3x.png" alt="logo">
+          </div>
           <div class="footer">
-            <input class="footer-input" placeholder="添加备注"/>
-            <img class="footer-logo" src="/static/logo3@3x.png" alt="logo"/>
+            <input v-model="remark" class="footer-input" placeholder="添加备注"/>
+            <div @click="clearValue">
+              <img class="footer-logo" src="/static/logo3@3x.png" alt="logo"/>
+            </div>
+
           </div>
         </div>
       </div>
@@ -62,12 +69,41 @@
     <!--弹出框-->
     <div class="modal-mask" v-if="hiddenModal" catchtouchmove="preventTouchMove">
       <div class="modal-dialog" v-if="hiddenModal">
-        <div class="modal-title">请注意</div>
-        <div class="modal-font">请注意:为了保证企业HR和学生更快</div>
-        <div class="modal-font">速、及时沟通,本群实时聊天只开发</div>
-        <div class="modal-time">24小时。</div>
+        <div class="container">
+          <div class="modal-title">注册会员</div>
+          <div @click="close">
+            <img src="/static/guanbi@3x.png">
+          </div>
+        </div>
+        <div class="modal-font">
+          <span class="modal-name">姓名</span>
+          <input class="modal-input" v-model="formValidate.name" placeholder="请输入姓名">
+        </div>
+        <div class="wire"></div>
+        <div class="modal-phone">
+          <span class="modal-relation">联系电话</span>
+          <input class="phone-input" v-model="formValidate.phoneNumber" placeholder="请输入联系电话">
+        </div>
+        <div class="wire"></div>
         <div class="modal-footer">
-          <div class="btn-confirm">我知道了</div>
+          <div class="btn-confirm" @click="sure">确定</div>
+        </div>
+      </div>
+    </div>
+    <!--底部弹出框-->
+    <div class="bottom-mask" v-if="showModal" catchtouchmove="preventTouchMove">
+      <div class="bottom-dialog" v-if="showModal">
+        <div class="bottom-header">
+          <div class="header-add">添加优惠卷</div>
+          <div class="header-select">选择优惠卷</div>
+          <div class="header-nonUse">不使用优惠卷</div>
+        </div>
+        <div class="bottom-footer">
+          <div class="footer-container">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -75,22 +111,79 @@
 </template>
 <script>
 
-
   export default {
     data() {
       return {
+        errorCode: null,
         money: '',
-        hiddenModal: false
+        hiddenModal: false,//弹出框显隐
+        formValidate: {
+          name: '',
+          phoneNumber: '',
+        },
+        isHide: '',//标题显隐
+        isHideOnSave: '',//优惠卷显隐
+        remark: '',
+        showModal: ''//底部优惠卷显隐
       }
     },
     components: {},
+    async created() {
+      await this.isLogin()
+      await this.memberType()
+      await this.accredit()
+      await this.isOnSale()
+    },
     methods: {
-      // init(){
-      //   let that = this;
-      //   that.$HTTP.get(this.$API.index,{},function (res) {
-      //     console.log(res)
-      //   })
-      // },
+      isShowModal() {
+        this.showModal = true
+      },
+      clearValue() {
+        this.remark = ''
+      },
+      //判断是否登陆
+      async isLogin() {
+        let that = this
+        await this.$HTTP.post(this.HOST + '/api/check/login', {store_id: 49})
+          .then(function (res) {
+          }).catch(function (error) {
+            that.errorCode = error.response.status
+          })
+      },
+      //拿到错误码401，让用户授权
+      async accredit() {
+        if (this.errorCode === 401) {
+          let res = await this.$HTTP.post(this.$ADDRESS + '/api/auth', {store_id: 49})
+          window.location.href = res.data.result;
+        }
+      },
+      //是否显示横条
+      async memberType() {
+        let res = await this.$HTTP.post(this.HOST + '/api/card/my')
+        if (res.data.result == null) {
+          this.isHide = true
+        } else {
+          this.isHide = false
+        }
+      },
+      //是否显示优惠卷
+      async isOnSale() {
+        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
+        console.log(res)
+        if (res.data.result) {
+          this.isHideOnSave = true
+        } else {
+          this.isHideOnSave = false
+        }
+      },
+      sure() {
+        const phoneTest = new RegExp("^1[3|4|5|7|8][0-9]{9}$");
+        console.log(typeof this.errorCode)
+      },
+      //点击关闭按钮关闭弹出框
+      close() {
+        this.hiddenModal = false
+      },
       isShow() {
         this.hiddenModal = true
       },
@@ -157,9 +250,7 @@
             if (S.length && Number(S.charAt(0)) === 0) return;
             this.money = S + num;
           }
-
         }
-
       },
       //提交
       _handleConfirmKey() {
@@ -177,14 +268,11 @@
         this.$emit('confirmEvent', S)
       }
     },
-    created() {
-      // this.init()
-    }
   }
 
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
   .mainer {
     height: 100%;
     & .header {
@@ -212,8 +300,8 @@
       line-height: 2rem;
       justify-content: space-between;
       align-items: center;
-      padding:0 0.5rem;
-      & .main-container{
+      padding: 0 0.5rem;
+      & .main-container {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -265,7 +353,7 @@
           width: 100%;
           border: none;
           outline: medium;
-          font-size: 50px;
+          font-size: 2rem;
         }
         & .icon {
           margin-left: 0.25rem;
@@ -276,6 +364,19 @@
       }
 
     }
+    & .center {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0 0.75rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      & .center-font {
+        font-size: 0.8rem;
+      }
+      & .center-logo {
+        width: 0.425rem;
+        height: 0.75rem;
+      }
+    }
     & .footer {
       margin-top: 0.75rem;
       font-size: 0.7rem;
@@ -285,7 +386,11 @@
         width: 100%;
         border: none;
         outline: medium;
-        color: #12263c;
+        color: #333333;
+        font-size: 0.7rem;
+      }
+      input::placeholder {
+        color: #b2b2b2;
         font-size: 0.7rem;
       }
       & .footer-logo {
@@ -294,17 +399,21 @@
       }
     }
   }
+
   .keword {
     background-color: white;
     display: flex;
     height: 10.2rem;
   }
+
   .right {
     width: 5rem;
   }
+
   .left {
     flex: 1;
   }
+
   .ul {
     display: flex;
   }
@@ -346,7 +455,63 @@
     line-height: 5.1rem;
   }
 
-  /*弹出框样式*/
+  .bottom-mask {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 9000;
+    & .bottom-dialog {
+      height: 389px;
+      width: 100%;
+      overflow: hidden;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      & .bottom-header {
+        display: flex;
+        justify-content: space-between;
+        background-color: #ffff;
+        height: 45px;
+        width: 100%;
+        align-items: center;
+        & .header-add {
+          font-size: 14px;
+          color: #e51c23;
+          padding-left: 10px;
+        }
+        & .header-select {
+          font-size: 17px;
+          color: #000000;
+        }
+        & .header-nonUse {
+          font-size: 14px;
+          color: #586c94;
+          padding-right: 25px;
+        }
+      }
+      & .bottom-footer {
+        width: 100%;
+        height: 400px;
+        background-color: #bfbfbf;
+        & .footer-container {
+          margin: 10px 30px 10px 10px;
+          height: 100px;
+          background-color: #ffffff;
+        }
+      }
+
+    }
+  }
+
+  /*点击标题弹出框样式*/
   .modal-mask {
     width: 100%;
     height: 100%;
@@ -357,44 +522,96 @@
     overflow: hidden;
     z-index: 9000;
     & .modal-dialog {
-      width: 268px;
+      border-radius: 5px;
+      height: 257px;
+      width: 320px;
       overflow: hidden;
       position: fixed;
-      top: 50%;
+      top: 33%;
       left: 0;
       z-index: 9999;
       background: white;
-      margin: -90px 52px;
+      margin: -90px 30px;
+      & .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        & .modal-title {
+          padding: 25px;
+          font-size: 18px;
+          color: #333333;
+          font-weight: bold;
+        }
+        & img {
+          padding-right: 25px;
+          width: 17px;
+          height: 17px;
+        }
+      }
+      & .wire {
+        border-bottom: 1px solid #f0f0f0;
+        margin-left: 25px
+      }
       & .modal-font {
-        font-size: 13px;
-        color: #6d6d6d;
-        margin-left: 35px;
-        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        padding: 0 25px 10px 25px;
+        & .modal-name {
+          font-size: 16px;
+          color: #333333;
+        }
+        & .modal-input {
+          padding-left: 50px;
+          font-size: 16px;
+          color: #333333;
+          border: none;
+          outline: medium;
+        }
+        input::placeholder {
+          color: #b2b2b2;
+          font-size: 16px;
+        }
+      }
+      & .modal-phone {
+        display: flex;
+        align-items: center;
+        padding: 10px 25px 10px 25px;
+        & .modal-relation {
+          font-size: 16px;
+          color: #333333;
+        }
+        & .phone-input {
+          padding-left: 20px;
+          font-size: 16px;
+          color: #333333;
+          border: none;
+          outline: medium;
+        }
+        input::placeholder {
+          color: #b2b2b2;
+          font-size: 0.8rem;
+        }
       }
       & .modal-time {
         font-size: 13px;
         color: #e51c23;
         margin-left: 35px;
       }
-      & .modal-title {
-        padding-top: 25px;
-        font-size: 16px;
-        color: #101010;
-        font-weight: bold;
-        text-align: center;
-      }
+
       & .modal-footer {
-        margin-top: 30px;
         display: flex;
         flex-direction: row;
-        height: 43px;
-        border-top: 1px solid #dedede;
-        line-height: 43px;
+        margin-top: 50px;
+        justify-content: center;
         & .btn-confirm {
-          width: 100%;
+          height: 44px;
+          width: 290px;
+          line-height: 44px;
+          border-radius: 5px;
+          background-color: #dd2726;
           text-align: center;
-          font-size: 14px;
-          color: #515151;
+          font-size: 20px;
+          color: #ffffff;
         }
       }
     }

@@ -43,10 +43,10 @@ HTTP.post = function (url, data, callback) {
   instance.post(IP + url, params)
     .then(function (res) {
       // 响应成功回调
-      if (res.data.status === 0) {
-        callback(res.data.data)
+      if (res.status === 200) {
+        callback(res.data)
       } else {
-        alert(ERROR_CODE[res.data.status])
+        alert(ERROR_CODE[res.status])
       }
     })
     .catch(function (err) {

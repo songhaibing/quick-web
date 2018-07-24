@@ -87,7 +87,7 @@
         </div>
       </div>
       <div class="footer">
-        <button class="button">确认买单</button>
+        <button class="button">¥200.00 确认买单</button>
       </div>
     </div>
   </div>
@@ -99,7 +99,7 @@
   }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
   .mainer {
     /*第二card样式*/
     & .header-card {
@@ -210,7 +210,6 @@
             height: 0.8rem;
           }
         }
-
       }
       & .amount-payable {
         display: flex;
@@ -339,8 +338,12 @@
         width: 100%;
         border: none;
         outline: medium;
-        color: #9eaab6;
-        font-size: 0.7rem;
+        color: #333333;;
+        font-size: 0.8rem;
+      }
+      input::placeholder{
+        color: #b2b2b2;
+        font-size: 0.8rem;
       }
     }
     & .footer {
