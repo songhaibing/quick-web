@@ -94,29 +94,84 @@
     <div class="bottom-mask" v-if="showModal" catchtouchmove="preventTouchMove">
       <div class="bottom-dialog" v-if="showModal">
         <div class="bottom-header">
-          <div class="header-add">添加优惠卷</div>
-          <div class="header-select">选择优惠卷</div>
-          <div class="header-nonUse">不使用优惠卷</div>
+          <div class="header-add" @click="addDiscount">添加优惠券</div>
+          <div class="header-select">选择优惠券</div>
+          <div class="header-nonUse" @click="noUse">不使用优惠券</div>
         </div>
         <div class="bottom-footer">
-          <div class="footer-container">
-            <div></div>
-            <div></div>
-            <div></div>
+          <div class="footer-container" v-for="(item,index) in res" :key="index">
+            <div class="ticket" :style="{ 'background': item.color }">
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="circle"></div>
+              <div class="ticket-fon">
+                <span class="ticket-money">¥{{item.reduce_cost}}</span>
+                <span class="money-font">{{item.title}}</span>
+              </div>
+            </div>
+            <div class="ticket-font">
+              <div class="ticket-container1">
+                <div class="spot"></div>
+                <span class="collect-money">{{$PROPERTYNAME[item.use_module]}}</span>
+                <span class="collect" v-show="item.enable_member_discount==0">不与会员折扣共享</span>
+              </div>
+              <div class="ticket-container2">
+                <div class="spot"></div>
+                <span class="time">{{item.expiry_time}}</span>
+              </div>
+              <div class="ticket-container3">
+                <div class="spot"></div>
+                <span class="week">{{item.use_time}}</span>
+              </div>
+            </div>
+            <div class="ticket-icon" v-show="nowIndex!==index&&max_coupon_dis_amount>=item.least_cost&&item.use_status" @click="whether(index)"></div>
+            <img class="ticket-img" src="/static/gou.png" @click="isImage" v-show="nowIndex==index" alt="logo">
+            <img src="/static/nodisable@3x.png" v-show="item.least_cost>=max_coupon_dis_amount||!item.use_status" class="disable-img" alt="logo">
           </div>
         </div>
+
       </div>
     </div>
+    <!--添加优惠券弹出框-->
+    <div class="add-mask" v-if="show" catchtouchmove="preventTouchMove">
+      <!--错误提示-->
+      <div class="error" v-if="showError">没有对应的优惠码</div>
+      <div class="add-dialog" v-if="show">
+        <div class="container">
+          <div class="add-title">添加优惠码</div>
+        </div>
+        <div class="add-font">
+          <input class="add-input" v-model="code" placeholder="请输入优惠码">
+        </div>
+        <div class="add-footer">
+          <div class="btn-cancel" @click="cancel">取消</div>
+          <div class="btn-confirm" @click="confirm">确定</div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 <script>
-
+  import { Toast } from 'vant';
   export default {
+
     data() {
       return {
+        res: [],
         errorCode: null,
         money: '',
+        code:'',
         hiddenModal: false,//弹出框显隐
+        showError:false,
         formValidate: {
           name: '',
           phoneNumber: '',
@@ -124,7 +179,30 @@
         isHide: '',//标题显隐
         isHideOnSave: '',//优惠卷显隐
         remark: '',
-        showModal: ''//底部优惠卷显隐
+        showModal: '',//底部优惠卷显隐
+        show:'',//添加优惠券显隐
+        isShowImg: false,
+        isShowCircle: true,//圆是默认出现
+        nowIndex: null,
+        is_use_points: 0,
+        coupon_detail_id: 0,
+        max_coupon_dis_amount: null
+      }
+    },
+    //监听输入金额值的变化
+    watch: {
+      money: function () {
+        setTimeout(async () => {
+          let res = await this.$HTTP.post(this.HOST + '/api/quickpay/preorder',
+            {
+              store_id: 49,
+              bill_amount: this.money,
+              is_use_points: this.is_use_points,
+              coupon_detail_id: this.coupon_detail_id
+            })
+          this.max_coupon_dis_amount = res.data.result.max_coupon_dis_amount
+        }, 2000)
+
       }
     },
     components: {},
@@ -135,6 +213,42 @@
       await this.isOnSale()
     },
     methods: {
+      //点击取消弹出框消失
+      cancel(){
+        this.show=false
+      },
+      async confirm(){
+        let res= await this.$HTTP.post(this.HOST + '/api/coupon/sn/change', {code: this.code})
+        console.log(res.data)
+        if(res.data.error_code==1){
+         this.showError=true
+          setTimeout(()=>{
+            this.showError=false
+          },2000)
+        }else{
+          this.show=false
+          this.showModal=false
+          Toast.success('添加成功');
+        }
+      },
+      //点击添加优惠券弹出框
+      addDiscount(){
+        this.show=true
+      },
+      //点击不使用优惠券底部弹出框消失
+      noUse() {
+        this.showModal = false
+        this.coupon_detail_id = 0
+      },
+      //点击圆隐藏圆显示图片
+      whether(index) {
+        this.nowIndex = index
+      },
+      //点击图片隐藏图片
+      isImage() {
+        this.nowIndex = null
+      },
+      //点击  底部弹出优惠券框
       isShowModal() {
         this.showModal = true
       },
@@ -170,6 +284,7 @@
       async isOnSale() {
         let res = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
         console.log(res)
+        this.res = res.data.result
         if (res.data.result) {
           this.isHideOnSave = true
         } else {
@@ -275,6 +390,7 @@
 <style lang="scss" scoped>
   .mainer {
     height: 100%;
+    overflow: hidden;
     & .header {
       height: 100%;
       background-color: white;
@@ -498,13 +614,117 @@
         }
       }
       & .bottom-footer {
+        height: 344px;
+        overflow: auto;
         width: 100%;
-        height: 400px;
-        background-color: #bfbfbf;
+        background-color: #ebf1f5;
         & .footer-container {
-          margin: 10px 30px 10px 10px;
+          display: flex;
+          margin: 12px 10px 10px 10px;
           height: 100px;
           background-color: #ffffff;
+          position: relative;
+          & .ticket {
+            width: 100px;
+            height: 100%;
+            & .ticket-fon {
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              margin-top: -80px;
+              & .ticket-money {
+                color: #ffffff;
+                font-size: 26px;
+              }
+              & .money-font {
+                color: #ffffff;
+                font-size: 13px;
+              }
+            }
+
+            & .circle {
+              width: 10px;
+              height: 10px;
+              border-radius: 50%;
+              background-color: #ffffff;
+              margin-left: 95px
+            }
+          }
+          & .ticket-font {
+            display: flex;
+            flex-direction: column;
+            margin-left: 20px;
+            & .ticket-container1 {
+              & .spot {
+                display: inline-block;
+                margin-top: 20px;
+                background-color: #888888;
+                border-radius: 50px;
+                width: 3px;
+                height: 3px
+              }
+              & .collect-money {
+                font-size: 12px;
+                color: #888888;
+              }
+              & .collect {
+                font-size: 12px;
+                color: #e51c23;
+              }
+            }
+            & .ticket-container2 {
+              & .spot {
+                display: inline-block;
+                margin-top: 20px;
+                background-color: #888888;
+                border-radius: 50px;
+                width: 3px;
+                height: 3px
+              }
+              & .time {
+                font-size: 12px;
+                color: #888888;
+              }
+            }
+            & .ticket-container3 {
+              & .spot {
+                display: inline-block;
+                margin-top: 20px;
+                background-color: #888888;
+                border-radius: 50px;
+                width: 3px;
+                height: 3px
+              }
+              & .week {
+                font-size: 12px;
+                color: #888888;
+              }
+            }
+          }
+          & .ticket-icon {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 1px solid #b2b2b2;
+            position: absolute;
+            right: 20px;
+            top: 35px
+          }
+          & .ticket-img {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            right: 17px;
+            top: 35px
+          }
+          & .disable-img {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 2rem;
+            height: 2rem
+          }
         }
       }
 
@@ -612,6 +832,89 @@
           text-align: center;
           font-size: 20px;
           color: #ffffff;
+        }
+      }
+    }
+  }
+  /*添加优惠券弹出框*/
+  .add-mask{
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 9000;
+    & .error{
+      background-color: #dd2726;
+      line-height:30px;
+      text-align: center;
+      color: #ebf1f5;
+      font-size: 15px
+    }
+    & .add-dialog{
+      border-radius: 5px;
+      height: 177px;
+      width: 280px;
+      overflow: hidden;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      margin: -90px 50px;
+      & .container{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        & .add-title{
+          padding: 15px;
+          font-size: 18px;
+          color: #000000;
+        }
+      }
+      & .add-font{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        & .add-input{
+          width:240px;
+          height: 44px;
+          border: 1px solid #e7e7e7;
+          font-size: 0.8rem;
+          outline: medium;
+          padding-left: 20px;
+          border-radius: 5px;
+          background-color: #fbfafc;
+        }
+        input::placeholder {
+          color: #b2b2b2;
+          font-size: 0.8rem;
+        }
+      }
+      & .add-footer{
+        margin-top: 26px;
+        display: flex;
+        flex-direction: row;
+        height: 46px;
+        border-top: 1px solid #dedede;
+        line-height: 46px;
+        & .btn-cancel{
+          width: 50%;
+          text-align: center;
+          font-size: 18px;
+          color: #515151;
+          background-color: #fbfafc;
+        }
+        & .btn-confirm{
+          width: 50%;
+          text-align: center;
+          font-size: 18px;
+          color: #e66363;
+          background-color:#dd2726;
         }
       }
     }
