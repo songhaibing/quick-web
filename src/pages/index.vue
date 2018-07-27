@@ -12,6 +12,8 @@
           </div>
           <img class="right-logo" src="/static/logo2@3x.png" alt="logo">
         </div>
+        <div class="error" v-if="errorMsg">{{error_msg}}</div>
+
         <!--card组件用来输入金额-->
         <div class="wrap">
           <div class="mainer">
@@ -23,14 +25,18 @@
           </div>
           <div class="center" v-show="isHideOnSave" @click="isShowModal">
             <div class="center-font">优惠卷</div>
+            <span class="center-num" v-show="isShowDiscount">-{{coupon_dis_amount}}</span>
             <img class="center-logo" src="/static/logo2@3x.png" alt="logo">
           </div>
+          <div class="cope" v-show="isShowMoney">
+            <div class="cope-font">应付金额</div>
+            <div class="cope-num">{{pay_amount}}</div>
+          </div>
           <div class="footer">
-            <input v-model="remark" class="footer-input" placeholder="添加备注"/>
+            <input v-model="remarks" class="footer-input" placeholder="添加备注"/>
             <div @click="clearValue">
               <img class="footer-logo" src="/static/logo3@3x.png" alt="logo"/>
             </div>
-
           </div>
         </div>
       </div>
@@ -62,12 +68,14 @@
           <div class="cancel" data-num='D'>
             <img class="cancel-logo" src="../../static/logo4@3x.png" data-num='D'>
           </div>
-          <div class="sure" data-num='S'>确定</div>
+          <div class="sure" data-num='S' @click="makeSure">确定</div>
         </div>
       </div>
     </div>
     <!--弹出框-->
     <div class="modal-mask" v-if="hiddenModal" catchtouchmove="preventTouchMove">
+      <div class="error" v-if="showErrorPhone">请输入11位联系电话</div>
+      <div class="error" v-if="showErrorTitle">姓名或联系电话与已注册的账号不一致</div>
       <div class="modal-dialog" v-if="hiddenModal">
         <div class="container">
           <div class="modal-title">注册会员</div>
@@ -77,16 +85,19 @@
         </div>
         <div class="modal-font">
           <span class="modal-name">姓名</span>
-          <input class="modal-input" v-model="formValidate.name" placeholder="请输入姓名">
+          <input class="modal-input" v-model="name" placeholder="请输入姓名">
         </div>
         <div class="wire"></div>
         <div class="modal-phone">
           <span class="modal-relation">联系电话</span>
-          <input class="phone-input" v-model="formValidate.phoneNumber" placeholder="请输入联系电话">
+          <input class="phone-input" v-model="phoneNumber" placeholder="请输入联系电话">
         </div>
         <div class="wire"></div>
         <div class="modal-footer">
-          <div class="btn-confirm" @click="sure">确定</div>
+          <div>
+            <button class="btn-confirm" @click="sure" :disabled="disabled">确定</button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -100,7 +111,8 @@
         </div>
         <div class="bottom-footer">
           <div class="footer-container" v-for="(item,index) in res" :key="index">
-            <div class="ticket" :style="{ 'background': item.color }">
+            <div class="ticket" :class="{disable:item.least_cost>=max_coupon_dis_amount,'text-danger': item.use_status==false } "
+                 :style="{'background': item.color}">
               <div class="circle"></div>
               <div class="circle"></div>
               <div class="circle"></div>
@@ -112,8 +124,12 @@
               <div class="circle"></div>
               <div class="circle"></div>
               <div class="ticket-fon">
-                <span class="ticket-money">¥{{item.reduce_cost}}</span>
-                <span class="money-font">{{item.title}}</span>
+                <span class="ticket-money" v-if="item.coupon_type==1">¥{{item.reduce_cost}}</span>
+                <div style="display: flex;align-items: center">
+                  <span class="ticket-money" v-if="item.coupon_type==2">{{item.discount/10}}</span>
+                  <span v-if="item.coupon_type==2" style="font-size: 11px;color:#FFFFFF;margin-top: 10px"> 折</span>
+                </div>
+                <span class="money-font" v-if="item.least_cost!==0&&item.coupon_type==1">满{{item.least_cost}}元使用</span>
               </div>
             </div>
             <div class="ticket-font">
@@ -131,9 +147,10 @@
                 <span class="week">{{item.use_time}}</span>
               </div>
             </div>
-            <div class="ticket-icon" v-show="nowIndex!==index&&max_coupon_dis_amount>=item.least_cost&&item.use_status" @click="whether(index)"></div>
+            <div class="ticket-icon" v-show="money!==''&&nowIndex!==index&&max_coupon_dis_amount>=item.least_cost&&item.use_status==true"
+                 @click="whether(item,index)"></div>
             <img class="ticket-img" src="/static/gou.png" @click="isImage" v-show="nowIndex==index" alt="logo">
-            <img src="/static/nodisable@3x.png" v-show="item.least_cost>=max_coupon_dis_amount||!item.use_status" class="disable-img" alt="logo">
+            <img src="/static/nodisable@3x.png" v-show="item.least_cost>=max_coupon_dis_amount||item.use_status!=true" class="disable-img" alt="logo">
           </div>
         </div>
 
@@ -154,41 +171,65 @@
           <div class="btn-cancel" @click="cancel">取消</div>
           <div class="btn-confirm" @click="confirm">确定</div>
         </div>
-
       </div>
     </div>
-
+    <!--支付异常弹出框-->
+    <div class="pay-mask" v-if="payError" catchtouchmove="preventTouchMove">
+      <div class="pay-dialog" v-if="payError">
+        <div class="container">
+          <img class="container-img" src="/static/error@3x.png">
+          <div class="pay-title">支付异常，需重新发起支付</div>
+        </div>
+        <div class="pay-footer">
+          <div class="btn-confirm" @click="newPay">重新支付</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 <script>
-  import { Toast } from 'vant';
-  export default {
+  import {Toast} from "vant"
 
+  export default {
     data() {
       return {
+        payError: false,
         res: [],
+        disabled: false,
         errorCode: null,
         money: '',
-        code:'',
+        code: '',
         hiddenModal: false,//弹出框显隐
-        showError:false,
-        formValidate: {
-          name: '',
-          phoneNumber: '',
-        },
+        showError: false,
+        name: '',
+        phoneNumber: '',
         isHide: '',//标题显隐
+        error_msg:'',
+        errorMsg: false,
         isHideOnSave: '',//优惠卷显隐
-        remark: '',
+        remarks: '',
+        showErrorPhone: false,//联系电话号码错误
+        showErrorTitle: false,
         showModal: '',//底部优惠卷显隐
-        show:'',//添加优惠券显隐
+        show: '',//添加优惠券显隐
         isShowImg: false,
         isShowCircle: true,//圆是默认出现
         nowIndex: null,
         is_use_points: 0,
         coupon_detail_id: 0,
-        max_coupon_dis_amount: null
+        max_coupon_dis_amount: null,
+        pay_amount: null,
+        coupon_dis_amount: null,
+        isShowMoney: false,
+        isShowDiscount: false,
+        coupon: 0, //保存优惠券id
+        pay_way: '',
+        trade_id: '',
+        iCount: '',
+        queryTradecount: 0,
       }
     },
+    computed: {},
     //监听输入金额值的变化
     watch: {
       money: function () {
@@ -201,48 +242,200 @@
               coupon_detail_id: this.coupon_detail_id
             })
           this.max_coupon_dis_amount = res.data.result.max_coupon_dis_amount
-        }, 2000)
+          let res1 = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
+          let that = this
+          let arr1 = res1.data.result.filter(function (s) {
+            return that.max_coupon_dis_amount >= s.least_cost
+          })
+          let arr5 = arr1.filter(function (s) {
+            return s.use_status == true
+          })
+          let arr2 = res1.data.result.filter(function (s) {
+            return !(that.max_coupon_dis_amount >= s.least_cost)
+          })
+          let arr3 = res1.data.result.filter(function (s) {
+            return s.use_status == false
+          })
+          let arr4 = arr5.concat(arr2)
+          this.res = arr4.concat(arr3)
+        })
 
       }
     },
     components: {},
     async created() {
+      await this.payWay()
       await this.isLogin()
       await this.memberType()
       await this.accredit()
       await this.isOnSale()
     },
     methods: {
-      //点击取消弹出框消失
-      cancel(){
-        this.show=false
+      //判断页面是在支付宝页面还是微信页面
+      payWay() {
+        var browser = navigator.userAgent.toLowerCase();
+        if (browser.match(/Alipay/i) == "alipay") {
+          this.pay_way = 'alipay'
+        } else if (browser.match(/MicroMessenger/i) == "micromessenger") {
+          this.pay_way = 'wx'
+
+        } else {
+          console.log("其它浏览器");
+        }
       },
-      async confirm(){
-        let res= await this.$HTTP.post(this.HOST + '/api/coupon/sn/change', {code: this.code})
-        console.log(res.data)
-        if(res.data.error_code==1){
-         this.showError=true
-          setTimeout(()=>{
-            this.showError=false
-          },2000)
-        }else{
-          this.show=false
-          this.showModal=false
-          Toast.success('添加成功');
+      async newPay() {
+        this.payError = false
+        let res = await this.$HTTP.post(this.HOST + '/api/pay/create', {pay_way: this.pay_way, trade_id: this.trade_id})
+        if (res.data.error_code == 0) {
+          let data = res.data.result.pay_data
+          this.weixinPay(data)
+        } else {
+          this.errorMsg = true
+          this.isHide = false
+          this.error_msg=res.data.error_msg
+          setTimeout(() => {
+            this.errorMsg = false
+            this.isHide = true
+          }, 2000)
+        }
+      },
+      //点击键盘确定
+      async makeSure() {
+        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/save/order', {
+          store_id: 49,
+          bill_amount: this.money,
+          is_use_points: 0,
+          coupon_detail_id: this.coupon,
+          remarks: this.remarks
+        })
+        let resCreate = await this.$HTTP.post(this.HOST + '/api/pay/create', {
+          trade_id: res.data.result.trade_id,
+          pay_way: this.pay_way
+        })
+        this.trade_id = res.data.result.trade_id
+        // this.payError=true
+        let data = resCreate.data.result.pay_data
+        await this.weixinPay(data);
+      },
+      weixinPay: function (data) {
+        var vm = this;
+        if (typeof WeixinJSBridge == "undefined") {//微信浏览器内置对象。参考微信官方文档
+          if (document.addEventListener) {
+            document.addEventListener('WeixinJSBridgeReady', vm.onBridgeReady(data), false);
+          } else if (document.attachEvent) {
+            document.attachEvent('WeixinJSBridgeReady', vm.onBridgeReady(data));
+            document.attachEvent('onWeixinJSBridgeReady', vm.onBridgeReady(data));
+          }
+        } else {
+          vm.onBridgeReady(data);
+        }
+      },
+      /**
+       * @method 支付费用方法
+       * @param data:后台返回的支付对象,(详情微信公众号支付API中H5提交支付);
+       */
+      onBridgeReady: function (data) {
+        var vm = this;
+        WeixinJSBridge.invoke(
+          'getBrandWCPayRequest', {
+            "appId": data.appId,     //公众号名称，由商户传入
+            "timeStamp": data.timeStamp, //时间戳，自1970年以来的秒数
+            "nonceStr": data.nonceStr, //随机串
+            "package": data.package,
+            "signType": data.signType, //微信签名方式：
+            "paySign": data.paySign //微信签名
+          },
+          async function (res) {
+            // 使用以上方式判断前端返回,微信团队郑重提示：res.err_msg将在用户支付成功后返回ok，但并不保证它绝对可靠。
+            if (res.err_msg == "get_brand_wcpay_request：ok") {
+              // vm.$router.push("/reservedBerth");
+              let res = await vm.$HTTP.post(this.HOST + '/api/pay/query', {
+                trade_id: vm.trade_id,
+              })
+            } else {
+
+              // alert("支付失败,请跳转页面"+res.err_msg);
+
+              await Toast.loading({
+                mask: true,
+                message: '支付中',
+                duration: 5000
+              });
+              vm.iCount = setInterval(function () {
+                vm.query()
+              }, 1000)
+
+            }
+          }
+        );
+      },
+      query() {
+        this.$HTTP.post(this.HOST + '/api/pay/query', {trade_id: this.trade_id})
+          .then((res) => {
+
+            this.queryTradecount++;
+            console.log(this.queryTradecount)
+            if (res.data.error_code == 3) {
+              // for(select_num=0;select_num>=5;select_num++){
+              if (this.queryTradecount >= 5) {
+                clearInterval(this.iCount);
+                this.payError = true
+              }
+              // }
+            } else if (res.data.error_code == 2) {
+              clearInterval(this.iCount);
+              this.payError = true
+            }
+          })
+          .catch((error) => {
+            clearInterval(this.iCount);
+          })
+      },
+      //点击取消弹出框消失
+      cancel() {
+        this.show = false
+      },
+      async confirm() {
+        let res = await this.$HTTP.post(this.HOST + '/api/coupon/sn/change', {code: this.code})
+        if (res.data.error_code == 1) {
+          this.showError = true
+          setTimeout(() => {
+            this.showError = false
+          }, 2000)
+        } else {
+          this.show = false
+          let res = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
+          this.res = res.data.result
         }
       },
       //点击添加优惠券弹出框
-      addDiscount(){
-        this.show=true
+      addDiscount() {
+        this.show = true
       },
       //点击不使用优惠券底部弹出框消失
-      noUse() {
+      async noUse() {
         this.showModal = false
         this.coupon_detail_id = 0
+        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/preorder', {store_id: 49, bill_amount: this.money, is_use_points: 0, coupon_detail_id: 0})
+
       },
       //点击圆隐藏圆显示图片
-      whether(index) {
+      async whether(item, index) {
         this.nowIndex = index
+        setTimeout(() => {
+          this.showModal = false
+        }, 1000)
+        this.coupon = item.coupon_detail_id
+        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/preorder', {
+          store_id: 49,
+          bill_amount: this.money,
+          is_use_points: 0,
+          coupon_detail_id: item.coupon_detail_id
+        })
+        this.isShowMoney = true
+        this.isShowDiscount = true
+        this.pay_amount = Number(res.data.result.pay_amount).toFixed(2)
+        this.coupon_dis_amount = Number(res.data.result.coupon_dis_amount).toFixed(2)
       },
       //点击图片隐藏图片
       isImage() {
@@ -253,7 +446,7 @@
         this.showModal = true
       },
       clearValue() {
-        this.remark = ''
+        this.remarks = ''
       },
       //判断是否登陆
       async isLogin() {
@@ -278,22 +471,34 @@
           this.isHide = true
         } else {
           this.isHide = false
+          this.$router.push('/ToPay')
         }
       },
-      //是否显示优惠卷
-      async isOnSale() {
-        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
-        console.log(res)
-        this.res = res.data.result
-        if (res.data.result) {
-          this.isHideOnSave = true
-        } else {
-          this.isHideOnSave = false
-        }
-      },
-      sure() {
+
+      async sure() {
         const phoneTest = new RegExp("^1[3|4|5|7|8][0-9]{9}$");
-        console.log(typeof this.errorCode)
+        if (this.name == '' && this.phoneNumber == '') {
+
+        } else {
+          if (this.name !== '' && this.phoneNumber !== '' && phoneTest.test(this.phoneNumber)) {
+            let res = await this.$HTTP.post(this.HOST + '/api/card/create/fast', {name: this.name, tel: this.phoneNumber})
+            if (res.data.error_code == 0) {
+              this.$router.push('/ToPay')
+              Toast.success('注册成功');
+            } else {
+              this.showErrorTitle = true
+              setTimeout(() => {
+                this.showErrorTitle = false
+              }, 2000)
+            }
+
+          } else {
+            this.showErrorPhone = true
+            setTimeout(() => {
+              this.showErrorPhone = false
+            }, 2000)
+          }
+        }
       },
       //点击关闭按钮关闭弹出框
       close() {
@@ -301,6 +506,17 @@
       },
       isShow() {
         this.hiddenModal = true
+      },
+      //是否显示优惠卷
+      async isOnSale() {
+        let res = await this.$HTTP.post(this.HOST + '/api/quickpay/coupons', {store_id: 49})
+        this.res = res.data.result
+
+        if (res.data.result) {
+          this.isHideOnSave = true
+        } else {
+          this.isHideOnSave = false
+        }
       },
       //处理按键
       _handleKeyPress(e) {
@@ -353,14 +569,11 @@
         //如果有小数点且小数点位数不小于2
         if (S.indexOf('.') > -1 && S.substring(S.indexOf('.') + 1).length < 2)
           this.money = S + num;
-
-
         //没有小数点
         if (!(S.indexOf('.') > -1)) {
           //如果第一位是0，只能输入小数点
           if (num == 0 && S.length == 0)
             this.money = '0.';
-
           else {
             if (S.length && Number(S.charAt(0)) === 0) return;
             this.money = S + num;
@@ -438,6 +651,13 @@
         color: white;
       }
     }
+    & .error {
+      background-color: #dd2726;
+      line-height: 30px;
+      text-align: center;
+      color: #ebf1f5;
+      font-size: 15px
+    }
   }
 
   .page-cont {
@@ -482,15 +702,35 @@
     }
     & .center {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       padding: 0.75rem 0 0.75rem 0;
       border-bottom: 1px solid #f0f0f0;
       & .center-font {
         font-size: 0.8rem;
       }
+      & .center-num {
+        font-size: 16px;
+        margin-right: 90px;
+        color: #9eaab6;
+      }
       & .center-logo {
         width: 0.425rem;
         height: 0.75rem;
+      }
+    }
+    & .cope {
+      display: flex;
+      padding: 0.75rem 0 0.75rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      & .cope-font {
+        font-size: 0.8rem;
+      }
+      & .cope-num {
+        font-size: 16px;
+        color: #e51c23;
+        margin-left: 43px;
+        font-weight: bold;
       }
     }
     & .footer {
@@ -651,6 +891,12 @@
               margin-left: 95px
             }
           }
+          & .disable {
+            background-color: #D5DADE !important;
+          }
+          & .text-danger {
+            background-color: #D5DADE !important;
+          }
           & .ticket-font {
             display: flex;
             flex-direction: column;
@@ -741,6 +987,13 @@
     background: rgba(0, 0, 0, 0.5);
     overflow: hidden;
     z-index: 9000;
+    & .error {
+      background-color: #dd2726;
+      line-height: 30px;
+      text-align: center;
+      color: #ebf1f5;
+      font-size: 15px
+    }
     & .modal-dialog {
       border-radius: 5px;
       height: 257px;
@@ -821,7 +1074,7 @@
       & .modal-footer {
         display: flex;
         flex-direction: row;
-        margin-top: 50px;
+        margin-top: 40px;
         justify-content: center;
         & .btn-confirm {
           height: 44px;
@@ -832,12 +1085,17 @@
           text-align: center;
           font-size: 20px;
           color: #ffffff;
+          &::after {
+            display: none;
+            border: none;
+          }
         }
       }
     }
   }
-  /*添加优惠券弹出框*/
-  .add-mask{
+
+  /*支付异常弹出框样式*/
+  .pay-mask {
     width: 100%;
     height: 100%;
     position: fixed;
@@ -846,14 +1104,63 @@
     background: rgba(0, 0, 0, 0.5);
     overflow: hidden;
     z-index: 9000;
-    & .error{
+    & .pay-dialog {
+      border-radius: 5px;
+      height: 177px;
+      width: 280px;
+      overflow: hidden;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      margin: -160px 50px;
+      & .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        & .container-img {
+          width: 45px;
+          height: 45px;
+          padding: 20px;
+        }
+        & .pay-title {
+          font-size: 16px;
+          color: #12263C;
+        }
+      }
+      & .pay-footer {
+        & .btn-confirm {
+          margin-top: 20px;
+          border-top: 1px solid #F0F0F0;
+          text-align: center;
+          line-height: 40px;
+          color: #D43B33;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  /*添加优惠券弹出框*/
+  .add-mask {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 9000;
+    & .error {
       background-color: #dd2726;
-      line-height:30px;
+      line-height: 30px;
       text-align: center;
       color: #ebf1f5;
       font-size: 15px
     }
-    & .add-dialog{
+    & .add-dialog {
       border-radius: 5px;
       height: 177px;
       width: 280px;
@@ -864,24 +1171,24 @@
       z-index: 9999;
       background: white;
       margin: -90px 50px;
-      & .container{
+      & .container {
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        & .add-title{
+        & .add-title {
           padding: 15px;
           font-size: 18px;
           color: #000000;
         }
       }
-      & .add-font{
+      & .add-font {
         display: flex;
         justify-content: center;
         align-items: center;
 
-        & .add-input{
-          width:240px;
+        & .add-input {
+          width: 240px;
           height: 44px;
           border: 1px solid #e7e7e7;
           font-size: 0.8rem;
@@ -895,26 +1202,26 @@
           font-size: 0.8rem;
         }
       }
-      & .add-footer{
+      & .add-footer {
         margin-top: 26px;
         display: flex;
         flex-direction: row;
         height: 46px;
         border-top: 1px solid #dedede;
         line-height: 46px;
-        & .btn-cancel{
+        & .btn-cancel {
           width: 50%;
           text-align: center;
           font-size: 18px;
           color: #515151;
           background-color: #fbfafc;
         }
-        & .btn-confirm{
+        & .btn-confirm {
           width: 50%;
           text-align: center;
           font-size: 18px;
           color: #e66363;
-          background-color:#dd2726;
+          background-color: #dd2726;
         }
       }
     }
