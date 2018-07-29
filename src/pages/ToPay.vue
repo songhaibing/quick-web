@@ -364,9 +364,8 @@
         font-size: 0.8rem;
         background: #dd2726;
         border-radius: 0.25rem;
-        &:after {
-          display: none;
-        }
+        outline: none;
+        border: none;
       }
     }
   }
