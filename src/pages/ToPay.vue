@@ -12,28 +12,23 @@
             <span class="header-describe" v-show="isShowFont" >不参与优惠金额</span>
             <input class="header-input" type="text" v-show="isShowInput" v-model='inputValue'>
           </div>
-
         </div>
         <div class="vip-discount" v-show="member_is_open">
           <div class="vip-font">会员折扣</div>
-
             <div class="discount-num" v-show="isShow">-{{member_dis_amount}}</div>
             <div class="discount-font" v-show="isShow">({{member_dis}}折)</div>
-
-
         </div>
         <div class="discount-coupon" @click="isShowModal">
           <div class="discount-container">
             <span class="discount-font">优惠券</span>
             <div v-show="isMoney" style="margin-left:46px ">
               <span  class="discount-num"  v-show="coupon_type==2">{{discountNum}}折</span>
-              <span class="center-num" :class="{centerNum1:coupon_type!==2}" v-show="isShowDiscount">减{{coupon_dis_amount}}</span>
+              <span class="center-num" :class="{centerNum1:coupon_type!==2}" >减{{coupon_dis_amount}}</span>
             </div>
-
             <span class="coupon-mun" v-show="isCoupon">{{arrNum}}张优惠券可用</span>
           </div>
           <div class="discount-icon">
-            <img class="logo" src="/static/logo2@3x.png">
+            <img class="logo" src="/static/logo2@3x.png" >
           </div>
         </div>
         <div class="integration-discount" v-show="discount_is_open">
@@ -42,8 +37,9 @@
             <span class="integration-num" v-show="isIntegral">-{{points_dis_amount}}</span>
             <span class="discount-font"  v-show="isIntegral">(使用{{use_points}}积分)</span>
           </div>
-          <div class="integration-icon">
-            <img class="integration-logo" src="/static/xuanzhong@3x.png">
+          <div class="integration-icon" @click="ImgLog">
+            <img class="integration-logo" src="/static/xuanzhong@3x.png" v-show="isShowXuanZhong">
+            <img class="integration-logo" src="/static/weizhong-@3x.png" v-show="isShowWeiZhong">
           </div>
 
         </div>
@@ -59,41 +55,46 @@
             <img class="left-logo" src="/static/wx@3x.png" alt="logo">
             <span class="wx-font">微信支付</span>
           </div>
-          <div class="wx-right">
-            <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo">
+          <div class="wx-right" @click='hiddenLogo'>
+            <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo" v-show="isShowLogo">
+            <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isShowLogo">
           </div>
         </div>
-        <div class="save-money">
-          <div class="save-left">
-            <img class="left-logo" src="/static/money@3x.png">
-            <span class="save-font">储值金额</span>
-            <span class="save-description">当前金额30元</span>
+        <div v-show="showModelValue">
+          <div class="save-money">
+            <div class="save-left">
+              <img class="left-logo" src="/static/money@3x.png">
+              <span class="save-font">储值金额</span>
+              <span class="save-description">当前金额{{balance}}元</span>
+            </div>
+            <div class="save-right" @click="saveLogo">
+              <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isSaveLogo">
+              <img class="right-logo" src="/static/xuanzhong@3x.png" v-show="isSaveLogo">
+            </div>
           </div>
-          <div class="save-right">
-            <img class="right-logo" src="/static/weizhong-@3x.png">
+          <div class="recharge">
+            <div class="recharge-font">冲220送22元</div>
+            <div class="recharge-icon" >
+              <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png" >
+            </div>
+          </div>
+          <div class="describe">
+            <div class="describe-font">到账24元，支付后剩余32元</div>
+          </div>
+          <div class="recharge">
+            <div class="recharge-font">充600送80元</div>
+            <div class="recharge-icon">
+              <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png">
+            </div>
+          </div>
+          <div class="recharge">
+            <div class="recharge-font">充1000送120元</div>
+            <div class="recharge-icon">
+              <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png">
+            </div>
           </div>
         </div>
-        <div class="recharge">
-          <div class="recharge-font">冲220送22元</div>
-          <div class="recharge-icon">
-            <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png">
-          </div>
-        </div>
-        <div class="describe">
-          <div class="describe-font">到账24元，支付后剩余32元</div>
-        </div>
-        <div class="recharge">
-          <div class="recharge-font">充600送80元</div>
-          <div class="recharge-icon">
-            <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png">
-          </div>
-        </div>
-        <div class="recharge">
-          <div class="recharge-font">充1000送120元</div>
-          <div class="recharge-icon">
-            <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png">
-          </div>
-        </div>
+
         <div class="input-confirm">
           <input class="input" placeholder="添加备注"/>
         </div>
@@ -148,7 +149,7 @@
                 <span class="week">{{item.use_time}}</span>
               </div>
             </div>
-            <div class="ticket-icon" v-show="money!==''&&nowIndex!==index&&max_coupon_dis_amount>=item.least_cost&&item.use_status==true"
+            <div class="ticket-icon" v-show="value!==''&&nowIndex!==index&&max_coupon_dis_amount>=item.least_cost&&item.use_status==true"
                  @click="whether(item,index)"></div>
             <img class="ticket-img" src="/static/gou.png" @click="isImage" v-show="nowIndex==index" alt="logo">
             <img src="/static/nodisable@3x.png" v-show="item.least_cost>=max_coupon_dis_amount||item.use_status!=true" class="disable-img" alt="logo">
@@ -184,13 +185,48 @@
         use_points:null,
         points_dis_amount:null,
         isIntegral:false,
-        pay_amount:null
+        pay_amount:null,
+        isShowXuanZhong:true,
+        isShowWeiZhong:false,
+        coupon_type:null,
+        discountNum:'',
+        coupon_dis_amount:'',
+        balance:localStorage.getItem("balance"),
+        showModelValue:'',
+        isShowLogo:'',
+        isSaveLogo:''
       }
     },
     async created(){
       await this.isMemberDiscount()
+      await this.isShowSaveValue()
     },
     methods:{
+      saveLogo(){
+        this.isSaveLogo=!this.isSaveLogo
+      },
+      hiddenLogo(){
+        this.isShowLogo=!this.isShowLogo
+      },
+      async isShowSaveValue(){
+        let res = await this.$HTTP.post(this.HOST + "api/wallet/tem");
+        if(res.data.result.template.length==0){
+          this.showModelValue=false
+        }else {
+          this.showModelValue=true
+        }
+      },
+      ImgLog(){
+        this.isShowXuanZhong=!this.isShowXuanZhong
+        this.isShowWeiZhong=!this.isShowWeiZhong
+        if(this.isShowXuanZhong==true){
+          let pay_amount=this.pay_amount-this.points_dis_amount;
+          this.pay_amount=Number(pay_amount).toFixed(2)
+        }else{
+          let pay_amount=+this.pay_amount+(+this.points_dis_amount)
+          this.pay_amount=Number(pay_amount).toFixed(2)
+        }
+      },
       clickFont(){
         this.isShowFont=false
         this.isShowInput=true
@@ -221,7 +257,7 @@
         this.coupon_detail_id = 0;
         let res = await this.$HTTP.post(this.HOST + "/api/quickpay/preorder", {
           store_id: 49,
-          bill_amount: this.money,
+          bill_amount: this.value,
           is_use_points: 0,
           coupon_detail_id: 0
         });
@@ -257,7 +293,7 @@
         this.nowIndex = null;
         console.log(e)
       },
-      //点击  底部弹出优惠券框
+      //点击底部弹出优惠券框
       isShowModal() {
         if(this.value==''){
           this.showModal = false;
@@ -265,6 +301,18 @@
           this.showModal = true;
         }
       },
+    },
+    //是否显示优惠卷
+    async isOnSale() {
+      let res = await this.$HTTP.post(this.HOST + "/api/quickpay/coupons", {
+        store_id: 49
+      });
+      this.res = res.data.result;
+      if (res.data.result) {
+        this.isHideOnSave = true;
+      } else {
+        this.isHideOnSave = false;
+      }
     },
     watch: {
       value: function() {
@@ -309,9 +357,19 @@
             ).toFixed(2);
           }
           this.pay_amount=Number(res.data.result.pay_amount).toFixed(2);
+
           let arr4 = arr5.concat(arr2);
           this.res = arr4.concat(arr3);
           this.arrNum=res1.data.result.length-arr3.length-arr2.length
+          if(+this.pay_amount>+this.balance){
+            this.isShowLogo=true
+          }else{
+            this.isShowLogo=false
+            this.isSaveLogo=true
+          }
+          if(this.isShowLogo){
+            this.isSaveLogo=false
+          }
           if(this.isMoney==false){
             this.isCoupon=true
           }else {
@@ -320,7 +378,6 @@
           }
         }, 500);
       },
-
     },
   }
 </script>
@@ -346,6 +403,7 @@
             color: #333333;
           }
           & .header-num {
+            padding-left: 0.6rem;
             color: #e51c23;
             width: 150px;
             font-weight: bold;

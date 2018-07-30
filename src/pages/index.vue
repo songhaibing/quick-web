@@ -499,6 +499,10 @@ export default {
     //是否显示横条
     async memberType() {
       let res = await this.$HTTP.post(this.HOST + "/api/card/my");
+      localStorage.setItem('balance',res.data.result.balance)
+      localStorage.setItem('level_id',res.data.result.level_id)
+      localStorage.setItem('no',res.data.result.no)
+      localStorage.setItem('points',res.data.result.points)
       if (res.data.result == null) {
         this.isHide = true;
       } else {
