@@ -2,6 +2,8 @@ import Vue from 'vue'
 import Router from 'vue-router'
 Vue.use(Router)
 
+
+//添加路由懒加载
 export default new Router({
   routes: [
     {

@@ -1,9 +1,4 @@
 
-
-
-
-
-
 // payWay() {
 //   var browser = navigator.userAgent.toLowerCase();
 //   if (browser.match(/Alipay/i) == "alipay") {
@@ -32,4 +27,4 @@
 //     }
 //   }
 
-}
+// }

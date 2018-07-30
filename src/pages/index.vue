@@ -101,7 +101,7 @@
         </div>
       </div>
     </div>
-    <!--底部弹出框-->
+    <!--底部弹出框(优惠券)-->
     <div class="bottom-mask" v-if="showModal" catchtouchmove="preventTouchMove">
       <div class="bottom-dialog" v-if="showModal">
         <div class="bottom-header">
@@ -466,7 +466,7 @@ export default {
       this.nowIndex = null;
      console.log(e)
     },
-    //点击  底部弹出优惠券框
+    //点击底部弹出优惠券框
     isShowModal() {
       if(this.money==''){
         this.showModal = false;
