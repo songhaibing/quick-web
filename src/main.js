@@ -6,7 +6,6 @@ import router from './router'
 import './styles.scss'
 import HTTP from 'axios'
 import  PROPERTYNAME from './lib/propertyName'
-import 'weui-vue/weui.css'
 
 import {Toast,PullRefresh,Button} from 'vant'
 [Toast,PullRefresh,Button].map(item => {
@@ -19,6 +18,7 @@ Vue.prototype.$HTTP = HTTP
 Vue.prototype.HOST = '/api'
 //对应字段All和Cashier字段
 Vue.prototype.$PROPERTYNAME =PROPERTYNAME
+Vue.prototype.$ =PROPERTYNAME
 Vue.config.productionTip = false
 
 /* eslint-disable no-new */

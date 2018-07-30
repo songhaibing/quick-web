@@ -1,8 +1,5 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import index from '@/pages/index'
-import ToPay from '@/pages/Topay'
-import payFinish from '@/pages/payFinish'
 Vue.use(Router)
 
 export default new Router({
@@ -10,17 +7,17 @@ export default new Router({
     {
       path: '/',
       name: 'index',
-      component: index
+      component: resolve => require(['@/pages/index'], resolve),
     },
     {
       path: '/ToPay',
       name: 'ToPay',
-      component: ToPay
+      component: resolve => require(['@/pages/Topay'], resolve),
     },
     {
-      path: '/payFinish',
-      name: 'payFinish',
-      component: payFinish
+      path: '/paySuccess',
+      name: 'paySuccess',
+      component: resolve => require(['@/pages/paySuccess'], resolve),
     }
   ]
 })

@@ -276,13 +276,15 @@ export default {
     await this.isOnSale();
   },
   methods: {
-    //判断页面是在支付宝页面还是微信页面
+    // 判断页面是在支付宝页面还是微信页面
     payWay() {
       var browser = navigator.userAgent.toLowerCase();
       if (browser.match(/Alipay/i) == "alipay") {
         this.pay_way = "alipay";
+        console.log('这是支付宝浏览器')
       } else if (browser.match(/MicroMessenger/i) == "micromessenger") {
         this.pay_way = "wx";
+        console.log('这是微信浏览器')
       } else {
         console.log("其它浏览器");
       }
@@ -683,10 +685,10 @@ export default {
   }
   & .error {
     background-color: #dd2726;
-    line-height: 30px;
+    line-height: 1.5em;
     text-align: center;
     color: #ebf1f5;
-    font-size: 15px;
+    font-size: 0.75rem;
   }
 }
 
@@ -736,21 +738,21 @@ export default {
     padding: 0.75rem 0 0.75rem 0;
     border-bottom: 1px solid #f0f0f0;
     & .center-font {
-      width: 65px;
+      width: 3.25rem;
       font-size: 0.8rem;
     }
     & .discount-num{
       font-weight: bold;
-      font-size: 16px;
+      font-size: 0.8rem;
       color: #dd2726;
     }
     & .center-num {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 0.8rem;
       color: #dd2726;
     }
     & .centerNum1{
-      margin-right: 50px;
+      margin-right: 2.5rem;
     }
     & .center-logo {
       width: 0.425rem;
