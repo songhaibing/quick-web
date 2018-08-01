@@ -8,12 +8,12 @@
         <div class="main" @click="isShow" v-show="isHide">
           <div class="main-container">
             <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
-            <span class="main-font">注册会员，享受更多优惠</span>
+            <span class="main-font">{{payFont}}会员，享受更多优惠</span>
           </div>
           <img class="right-logo" src="/static/logo2@3x.png" alt="logo">
         </div>
         <div class="error" v-show="errorMsg">{{error_msg}}</div>
-
+        <div class="error" v-show="showErrorMsg">{{error}}</div>
         <!--card组件用来输入金额-->
         <div class="wrap">
           <div class="mainer">
@@ -127,7 +127,7 @@
                 <span class="ticket-money" v-if="item.coupon_type==1">¥{{item.reduce_cost}}</span>
                 <div style="display: flex;align-items: center">
                   <span class="ticket-money" v-if="item.coupon_type==2">{{item.discount/10}}</span>
-                  <span v-if="item.coupon_type==2" style="font-size: 11px;color:#FFFFFF;margin-top: 10px"> 折</span>
+                  <span v-if="item.coupon_type==2" style="font-size: 0.55rem;color:#FFFFFF;margin-top: 0.5rem"> 折</span>
                 </div>
                 <span class="money-font" v-if="item.least_cost!==0&&item.coupon_type==1">满{{item.least_cost}}元使用</span>
               </div>
@@ -203,9 +203,11 @@ export default {
       showError: false,//优惠码错误码显隐
       name: "",
       phoneNumber: "",
-      isHide: "", //标题显隐
+      isHide: true, //标题显隐
       error_msg: "",
       errorMsg: false,
+      showErrorMsg:false,
+      error:'',
       isHideOnSave: "", //优惠卷显隐
       remarks: "",
       showErrorPhone: false, //联系电话号码错误
@@ -229,7 +231,8 @@ export default {
       queryTradecount: 0,
       timer: "",
       discountNum:'',//折扣
-      coupon_type:null
+      coupon_type:null,
+      payFont:''
     };
   },
   computed: {},
@@ -264,16 +267,17 @@ export default {
         });
         let arr4 = arr5.concat(arr2);
         this.res = arr4.concat(arr3);
-      }, 500);
+      }, 1000);
     }
   },
   components: {},
   async created() {
     await this.isLogin();
-    await this.payWay();
-    await this.memberType();
     await this.accredit();
+    await this.payWay();
     await this.isOnSale();
+    await this.memberType();
+
   },
   methods: {
     // 判断页面是在支付宝页面还是微信页面
@@ -281,9 +285,11 @@ export default {
       var browser = navigator.userAgent.toLowerCase();
       if (browser.match(/Alipay/i) == "alipay") {
         this.pay_way = "alipay";
+        this.payFont="绑定"
         console.log('这是支付宝浏览器')
       } else if (browser.match(/MicroMessenger/i) == "micromessenger") {
         this.pay_way = "wx";
+        this.payFont="注册"
         console.log('这是微信浏览器')
       } else {
         console.log("其它浏览器");
@@ -322,10 +328,22 @@ export default {
         pay_way: this.pay_way
       });
       this.trade_id = res.data.result.trade_id;
-      // this.payError=true
+      if(resCreate.data.error_code==1){
+           this.showErrorMsg=true
+            this.isHide=false
+        setTimeout(()=>{
+          this.showErrorMsg=false
+          this.isHide=true
+        },2000)
+        this.error=resCreate.data.error_msg
+      }
       let data = resCreate.data.result.pay_data;
-      await this.weixinPay(data);
+
+        await this.weixinPay(data);
+
+
     },
+    //微信支付
     weixinPay: function(data) {
       var vm = this;
       if (typeof WeixinJSBridge == "undefined") {
@@ -374,7 +392,6 @@ export default {
           } else {
             console.log(vm.errorMsg);
             vm.errorMsg = true;
-            console.log(1);
           }
         }
       );
@@ -384,9 +401,7 @@ export default {
         .post(this.HOST + "/api/pay/query", { trade_id: this.trade_id })
         .then(res => {
           this.queryTradecount++;
-          console.log(this.queryTradecount);
           if (res.data.error_code == 3) {
-            // for(select_num=0;select_num>=5;select_num++){
             if (this.queryTradecount >= 5) {
               clearInterval(this.iCount);
               this.payError = true;
@@ -490,7 +505,7 @@ export default {
     //拿到错误码401，让用户授权
     async accredit() {
       if (this.errorCode === 401) {
-        let res = await this.$HTTP.post(this.$ADDRESS + "/api/auth", {
+        let res = await this.$HTTP.post(this.HOST+ "/api/auth", {
           store_id: 49
         });
         window.location.href = res.data.result;
@@ -499,10 +514,10 @@ export default {
     //是否显示横条
     async memberType() {
       let res = await this.$HTTP.post(this.HOST + "/api/card/my");
-      localStorage.setItem('balance',res.data.result.balance)
-      localStorage.setItem('level_id',res.data.result.level_id)
-      localStorage.setItem('no',res.data.result.no)
-      localStorage.setItem('points',res.data.result.points)
+      // localStorage.setItem('balance',res.data.result.balance)
+      // localStorage.setItem('level_id',res.data.result.level_id)
+      // localStorage.setItem('no',res.data.result.no)
+      // localStorage.setItem('points',res.data.result.points)
       if (res.data.result == null) {
         this.isHide = true;
       } else {
@@ -554,7 +569,6 @@ export default {
         store_id: 49
       });
       this.res = res.data.result;
-
       if (res.data.result) {
         this.isHideOnSave = true;
       } else {
@@ -769,13 +783,13 @@ export default {
     padding: 0.75rem 0 0.75rem 0;
     border-bottom: 1px solid #f0f0f0;
     & .cope-font {
-      width: 65px;
+      width: 3.25rem;
       font-size: 0.8rem;
     }
     & .cope-num {
-      font-size: 16px;
+      font-size: 0.8rem;
       color: #e51c23;
-      margin-left: 43px;
+      margin-left: 2.15rem;
       font-weight: bold;
     }
   }
@@ -867,7 +881,7 @@ export default {
   overflow: hidden;
   z-index: 9000;
   & .bottom-dialog {
-    height: 389px;
+    height: 19.45rem;
     width: 100%;
     overflow: hidden;
     position: fixed;
@@ -881,60 +895,60 @@ export default {
       display: flex;
       justify-content: space-between;
       background-color: #ffff;
-      height: 45px;
+      height: 2.25rem;
       width: 100%;
       align-items: center;
       & .header-add {
-        font-size: 14px;
+        font-size: 0.7rem;
         color: #e51c23;
-        padding-left: 10px;
+        padding-left: 0.5rem;
       }
       & .header-select {
-        font-size: 17px;
+        font-size: 0.85rem;
         color: #000000;
       }
       & .header-nonUse {
-        font-size: 14px;
+        font-size: 0.7rem;
         color: #586c94;
-        padding-right: 25px;
+        padding-right: 1.25rem;
       }
     }
     & .bottom-footer {
-      height: 344px;
+      height: 17.2rem;
       overflow: auto;
       width: 100%;
       background-color: #ebf1f5;
       & .footer-container {
         display: flex;
-        margin: 12px 10px 10px 10px;
-        height: 100px;
+        margin: 0.6rem 0.5rem 0.5rem 0.5rem;
+        height: 5rem;
         background-color: #ffffff;
         position: relative;
         & .ticket {
-          width: 100px;
+          width: 5rem;
           height: 100%;
           & .ticket-fon {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin-top: -80px;
+            margin-top: -4rem;
             & .ticket-money {
               color: #ffffff;
-              font-size: 26px;
+              font-size: 1.3rem;
             }
             & .money-font {
               color: #ffffff;
-              font-size: 13px;
+              font-size: 0.65rem;
             }
           }
 
           & .circle {
-            width: 10px;
-            height: 10px;
+            width: 0.5rem;
+            height: 0.5rem;
             border-radius: 50%;
             background-color: #ffffff;
-            margin-left: 95px;
+            margin-left: 4.75rem;
           }
         }
         & .disable {
@@ -946,69 +960,69 @@ export default {
         & .ticket-font {
           display: flex;
           flex-direction: column;
-          margin-left: 20px;
+          margin-left: 1rem;
           & .ticket-container1 {
             & .spot {
               display: inline-block;
-              margin-top: 20px;
+              margin-top: 1rem;
               background-color: #888888;
-              border-radius: 50px;
-              width: 3px;
-              height: 3px;
+              border-radius: 2.5rem;
+              width: 0.15rem;
+              height: 0.15rem;
             }
             & .collect-money {
-              font-size: 12px;
+              font-size: 0.6rem;
               color: #888888;
             }
             & .collect {
-              font-size: 12px;
+              font-size: 0.6rem;
               color: #e51c23;
             }
           }
           & .ticket-container2 {
             & .spot {
               display: inline-block;
-              margin-top: 20px;
+              margin-top: 1rem;
               background-color: #888888;
-              border-radius: 50px;
-              width: 3px;
-              height: 3px;
+              border-radius: 2.5rem;
+              width:  0.15rem;
+              height:  0.15rem;
             }
             & .time {
-              font-size: 12px;
+              font-size: 0.6rem;
               color: #888888;
             }
           }
           & .ticket-container3 {
             & .spot {
               display: inline-block;
-              margin-top: 20px;
+              margin-top: 1rem;
               background-color: #888888;
-              border-radius: 50px;
-              width: 3px;
-              height: 3px;
+              border-radius: 2.5rem;
+              width: 0.15rem;
+              height: 0.15rem;
             }
             & .week {
-              font-size: 12px;
+              font-size: 0.6rem;
               color: #888888;
             }
           }
         }
         & .ticket-icon {
-          width: 15px;
-          height: 15px;
+          width: 0.75rem;
+          height: 0.75rem;
           border-radius: 50%;
           border: 1px solid #b2b2b2;
           position: absolute;
-          right: 20px;
-          top: 35px;
+          right: 1rem;
+          top:1.75rem;
         }
         & .ticket-img {
-          width: 20px;
-          height: 20px;
+          width: 1rem;
+          height: 1rem;
           position: absolute;
-          right: 17px;
-          top: 35px;
+          right: 0.85rem;
+          top: 1.75rem;
         }
         & .disable-img {
           position: absolute;
@@ -1034,73 +1048,73 @@ export default {
   z-index: 9000;
   & .error {
     background-color: #dd2726;
-    line-height: 30px;
+    line-height: 1.5rem;
     text-align: center;
     color: #ebf1f5;
-    font-size: 15px;
+    font-size: 0.75rem;
   }
   & .modal-dialog {
-    border-radius: 5px;
-    height: 257px;
-    width: 320px;
+    border-radius: 0.25rem;
+    height: 12.85rem;
+    width: 16rem;
     overflow: hidden;
     position: fixed;
     top: 33%;
     left: 0;
     z-index: 9999;
     background: white;
-    margin: -90px 30px;
+    margin: -4.5rem 1.5rem;
     & .container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       & .modal-title {
-        padding: 25px;
-        font-size: 18px;
+        padding: 1.25rem;
+        font-size: 0.9rem;
         color: #333333;
         font-weight: bold;
       }
       & img {
-        padding-right: 25px;
-        width: 17px;
-        height: 17px;
+        padding-right: 1.25rem;
+        width: 0.85rem;
+        height: 0.85rem;
       }
     }
     & .wire {
       border-bottom: 1px solid #f0f0f0;
-      margin-left: 25px;
+      margin-left: 1.25rem;
     }
     & .modal-font {
       display: flex;
       align-items: center;
-      padding: 0 25px 10px 25px;
+      padding: 0 1.25rem 0.5rem 1.25rem;
       & .modal-name {
-        font-size: 16px;
+        font-size: 0.8rem;
         color: #333333;
       }
       & .modal-input {
-        padding-left: 50px;
-        font-size: 16px;
+        padding-left: 2.5rem;
+        font-size: 0.8rem;
         color: #333333;
         border: none;
         outline: medium;
       }
       input::placeholder {
         color: #b2b2b2;
-        font-size: 16px;
+        font-size: 0.8rem;
       }
     }
     & .modal-phone {
       display: flex;
       align-items: center;
-      padding: 10px 25px 10px 25px;
+      padding: 0.5rem 1.25rem 0.5rem 1.25rem;
       & .modal-relation {
-        font-size: 16px;
+        font-size: 0.8rem;
         color: #333333;
       }
       & .phone-input {
-        padding-left: 20px;
-        font-size: 16px;
+        padding-left: 1rem;
+        font-size: 0.8rem;
         color: #333333;
         border: none;
         outline: medium;
@@ -1111,24 +1125,24 @@ export default {
       }
     }
     & .modal-time {
-      font-size: 13px;
+      font-size: 0.65rem;
       color: #e51c23;
-      margin-left: 35px;
+      margin-left: 1.75rem;
     }
 
     & .modal-footer {
       display: flex;
       flex-direction: row;
-      margin-top: 40px;
+      margin-top: 2rem;
       justify-content: center;
       & .btn-confirm {
-        height: 44px;
-        width: 290px;
-        line-height: 44px;
-        border-radius: 5px;
+        height: 2.2rem;
+        width: 14.5rem;
+        line-height: 2.2rem;
+        border-radius: 0.25rem;
         background-color: #dd2726;
         text-align: center;
-        font-size: 20px;
+        font-size: 1rem;
         color: #ffffff;
         border: none ;
         outline: none ;
@@ -1148,39 +1162,39 @@ export default {
   overflow: hidden;
   z-index: 9000;
   & .pay-dialog {
-    border-radius: 5px;
-    height: 177px;
-    width: 280px;
+    border-radius: 0.25rem;
+    height: 8.85rem;
+    width: 14rem;
     overflow: hidden;
     position: fixed;
     top: 50%;
     left: 0;
     z-index: 9999;
     background: white;
-    margin: -160px 50px;
+    margin: -8rem 2.5rem;
     & .container {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       & .container-img {
-        width: 45px;
-        height: 45px;
-        padding: 20px;
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 1rem;
       }
       & .pay-title {
-        font-size: 16px;
+        font-size: 0.8rem;
         color: #12263c;
       }
     }
     & .pay-footer {
       & .btn-confirm {
-        margin-top: 20px;
+        margin-top: 1rem;
         border-top: 1px solid #f0f0f0;
         text-align: center;
-        line-height: 40px;
+        line-height: 2rem;
         color: #d43b33;
-        font-size: 16px;
+        font-size: 0.8rem;
       }
     }
   }
@@ -1198,30 +1212,30 @@ export default {
   z-index: 9000;
   & .error {
     background-color: #dd2726;
-    line-height: 30px;
+    line-height: 1.5rem;
     text-align: center;
     color: #ebf1f5;
-    font-size: 15px;
+    font-size: 0.75rem;
   }
   & .add-dialog {
-    border-radius: 5px;
-    height: 177px;
-    width: 280px;
+    border-radius: 0.25rem;
+    height: 8.85rem;
+    width: 14rem;
     overflow: hidden;
     position: fixed;
     top: 50%;
     left: 0;
     z-index: 9999;
     background: white;
-    margin: -90px 50px;
+    margin: -4.5rem 2.5rem;
     & .container {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       & .add-title {
-        padding: 15px;
-        font-size: 18px;
+        padding: 0.75rem;
+        font-size: 0.9rem;
         color: #000000;
       }
     }
@@ -1231,13 +1245,13 @@ export default {
       align-items: center;
 
       & .add-input {
-        width: 240px;
-        height: 44px;
+        width: 12rem;
+        height: 2.2rem;
         border: 1px solid #e7e7e7;
         font-size: 0.8rem;
         outline: medium;
-        padding-left: 20px;
-        border-radius: 5px;
+        padding-left: 1rem;
+        border-radius: 0.25rem;
         background-color: #fbfafc;
       }
       input::placeholder {
@@ -1246,23 +1260,23 @@ export default {
       }
     }
     & .add-footer {
-      margin-top: 26px;
+      margin-top: 1.3rem;
       display: flex;
       flex-direction: row;
-      height: 46px;
+      height: 2.3rem;
       border-top: 1px solid #dedede;
-      line-height: 46px;
+      line-height: 2.3rem;
       & .btn-cancel {
         width: 50%;
         text-align: center;
-        font-size: 18px;
+        font-size: 0.9rem;
         color: #515151;
         background-color: #fbfafc;
       }
       & .btn-confirm {
         width: 50%;
         text-align: center;
-        font-size: 18px;
+        font-size:  0.9rem;
         color: #e66363;
         background-color: #dd2726;
       }

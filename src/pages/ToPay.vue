@@ -2,8 +2,9 @@
   <div style="height: 100%;">
     <div class="mainer">
       <!--第一个card-->
-      <div class="error" v-if="showError">小于应付金额,请更换储值方式</div>
+      <div class="error" v-if="showErrorValue">小于应付金额,请更换储值方式</div>
       <div class="error" v-if="timeError">赠送金额{{limit_time}}小时候可用,请更换储值方案</div>
+      <div class="error" v-if="showErrorMsg">{{error}}</div>
       <div class="header-card">
         <div class="pay-money">
           <div class="money">
@@ -40,7 +41,7 @@
             <span class="integration-num" v-show="isIntegral&&value!=''">{{points_dis_amount}}</span>
             <span class="discount-font" v-show="isIntegral&&member_dis_amount!=computing&&value!=''">(使用{{use_points}}积分)</span>
           </div>
-          <div class="integration-icon" @click="ImgLog">
+          <div class="integration-icon" @click="ImgLog" v-show="value!=''">
             <img class="integration-logo" src="/static/xuanzhong@3x.png" v-show="isShowXuanZhong">
             <img class="integration-logo" src="/static/weizhong-@3x.png" v-show="!isShowXuanZhong">
           </div>
@@ -60,8 +61,8 @@
             <span class="wx-font">{{pay_way}}</span>
           </div>
           <div class="wx-right" @click='hiddenLogo'>
-            <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo" v-show="isShowLogo">
-            <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isShowLogo">
+            <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo" v-show="isShowLogo&&value!=''">
+            <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isShowLogo||value==''">
           </div>
         </div>
         <div v-show="showModelValue">
@@ -72,19 +73,19 @@
               <span class="save-description">当前金额{{balance}}元</span>
             </div>
             <div class="save-right" @click="saveLogo">
-              <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isSaveLogo">
-              <img class="right-logo" src="/static/xuanzhong@3x.png" v-show="isSaveLogo">
+              <img class="right-logo" src="/static/weizhong-@3x.png" alt="logo" v-show="!isSaveLogo||value==''">
+              <img class="right-logo" src="/static/xuanzhong@3x.png" v-show="isSaveLogo&&value!=''">
             </div>
           </div>
           <div v-for="(item,index) in arrTemplate" :key="index">
             <div class="recharge">
               <div class="recharge-font">冲{{item.amount}}送{{item.gift_amount}}元</div>
               <div class="recharge-icon" @click="switchImg(item,index)">
-                <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png" v-show="Index!=index||bShow">
-                <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo" v-show="Index==index&&aShow">
+                <img class="right-logo" alt="logo" src="/static/weizhong-@3x.png" v-show="Index!=index||bShow||value==''">
+                <img class="right-logo" src="/static/xuanzhong@3x.png" alt="logo" v-show="Index==index&&aShow&&value!=''">
               </div>
             </div>
-            <div class="describe" v-show="Index==index&&cShow">
+            <div class="describe" v-show="Index==index&&cShow&&value!=''">
               <div class="describe-font">到账{{amount+gift_amount}}元，支付后剩余{{sum}}元</div>
             </div>
           </div>
@@ -95,7 +96,10 @@
       </div>
     </div>
     <div class="footer">
-      <button class="button" v-show="member_dis_amount!=computing" @click="createOrder"><span v-show="isShowSymbol&&value!=''">¥</span><span v-show="value!=''">{{moneyValue}}</span>
+      <button class="button" v-if="value!=''" v-show="member_dis_amount!=computing" @click="createOrder"><span v-show="isShowSymbol&&value!=''">¥</span><span v-show="value!=''">{{moneyValue}}</span>
+        {{butDescribe}}
+      </button>
+      <button class="button-forbidden" v-else v-show="member_dis_amount!=computing" ><span v-show="isShowSymbol&&value!=''">¥</span><span v-show="value!=''">{{moneyValue}}</span>
         {{butDescribe}}
       </button>
       <button class="button" v-show="member_dis_amount==computing">{{computing}}</button>
@@ -154,14 +158,46 @@
         </div>
       </div>
     </div>
+    <!--添加优惠券弹出框-->
+    <div class="add-mask" v-if="show" catchtouchmove="preventTouchMove">
+      <!--错误提示-->
+      <div class="error" v-if="showError">没有对应的优惠码</div>
+      <div class="add-dialog" v-if="show">
+        <div class="container">
+          <div class="add-title">添加优惠码</div>
+        </div>
+        <div class="add-font">
+          <input class="add-input" v-model="code" placeholder="请输入优惠码">
+        </div>
+        <div class="add-footer">
+          <div class="btn-cancel" @click="cancel">取消</div>
+          <div class="btn-confirm" @click="confirm">确定</div>
+        </div>
+      </div>
+    </div>
+    <!--支付异常弹出框-->
+    <div class="pay-mask" v-if="payError" catchtouchmove="preventTouchMove">
+      <div class="pay-dialog" v-if="payError">
+        <div class="container">
+          <img class="container-img" src="/static/error@3x.png">
+          <div class="pay-title">支付异常，需重新发起支付</div>
+        </div>
+        <div class="pay-footer">
+          <div class="btn-confirm" @click="newPay">重新支付</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+  import { Toast } from "vant";
   export default {
     name: "ToPay",
     data() {
       return {
+        payError:false,
+        showErrorMsg:false,
         value: '',
         isShowFont: true,
         isShowInput: false,
@@ -186,16 +222,17 @@
         coupon_type: null,
         discountNum: '',
         coupon_dis_amount: '',
-        balance: localStorage.getItem("balance"),
+        balance: "",
         showModelValue: '',
         isShowLogo: '',
         isSaveLogo: '',
         arrTemplate: [],
         pay_way: '',
+        pattern:'',
         Index: null,
         amount: '',
         gift_amount: null,
-        showError: false,
+        showErrorValue: false,
         timeError: false,
         moneyValue: null,
         butDescribe: '确认买单',
@@ -207,13 +244,21 @@
         limit_time: null,
         computing: '正在计算中...',
         remarks:'',
-        coupon_detail_id:0
+        coupon_detail_id:0,
+        trade_id:null,
+        show: "", //添加优惠券显隐
+        showError: false,//优惠码错误码显隐
+        code: "",
+        queryTradecount: 0,
+        id:null
+
       }
     },
     async created() {
       await this.isMemberDiscount()
       await this.isShowSaveValue()
       await this.payWay()
+      await this.getBalance()
     },
     computed: {
       //消费金额减去不参与优惠金额
@@ -227,6 +272,46 @@
 
     },
     methods: {
+      async newPay() {
+        this.payError = false;
+        let res = await this.$HTTP.post(this.HOST + "/api/pay/create", {
+          pay_way: this.pay_way,
+          trade_id: this.trade_id
+        });
+        if (res.data.error_code == 0) {
+          let data = res.data.result.pay_data;
+          this.weixinPay(data);
+        } else {
+          this.errorMsg = true;
+          this.isHide = false;
+          this.error_msg = res.data.error_msg;
+          setTimeout(() => {
+            this.errorMsg = false;
+            this.isHide = true;
+          }, 2000);
+        }
+      },
+      //点击取消弹出框消失
+      cancel() {
+        this.show = false;
+      },
+      async confirm() {
+        let res = await this.$HTTP.post(this.HOST + "/api/coupon/sn/change", {
+          code: this.code
+        });
+        if (res.data.error_code == 1) {
+          this.showError = true;
+          setTimeout(() => {
+            this.showError = false;
+          }, 2000);
+        } else {
+          this.show = false;
+          let res = await this.$HTTP.post(this.HOST + "/api/quickpay/coupons", {
+            store_id: 49
+          });
+          this.res = res.data.result;
+        }
+      },
       change() {
         this.member_dis_amount = this.computing
         this.points_dis_amount = this.computing
@@ -235,28 +320,29 @@
         this.Index = index
         this.amount = item.amount
         this.gift_amount = item.gift_amount
+        this.id=item.id
         this.sum = (item.amount + item.gift_amount + (+this.balance) - (+this.pay_amount)).toFixed(1)
         if (this.Index == index) {
           this.isSaveLogo = false
           this.isShowLogo = false
         }
         if (item.amount + item.gift_amount + (+this.balance) < +this.pay_amount) {
-          this.showError = true
+          this.showErrorValue = true
           this.aShow = false
           this.bShow = true
           this.cShow = false
           setTimeout(() => {
-            this.showError = false
+            this.showErrorValue = false
           }, 5000)
         } else {
-          this.showError = false
+          this.showErrorValue = false
           this.aShow = true
           this.bShow = false
           this.cShow = true
         }
         if (this.limit_time > 0 && this.amount < this.pay_amount) {
           this.timeError = true
-          this.showError = false
+          this.showErrorValue = false
           setTimeout(() => {
             this.timeError = false
           }, 5000)
@@ -272,17 +358,24 @@
         var browser = navigator.userAgent.toLowerCase();
         if (browser.match(/Alipay/i) == "alipay") {
           this.pay_way = "支付宝支付";
+          this.pattern='alipay'
           console.log('这是支付宝浏览器')
         } else if (browser.match(/MicroMessenger/i) == "micromessenger") {
           this.pay_way = "微信支付";
+          this.pattern='wx'
           console.log('这是微信浏览器')
         } else {
           console.log("其它浏览器");
         }
       },
+      async getBalance(){
+        let res = await this.$HTTP.post(this.HOST + "/api/card/my");
+        this.balance=res.data.result.balance
+      },
       saveLogo() {
         this.isSaveLogo = true
         if (this.isSaveLogo == true) {
+          this.butDescribe="确认买单"
           this.moneyValue = this.pay_amount
           this.isShowLogo = false
           this.aShow = false
@@ -367,15 +460,12 @@
         setTimeout(() => {
           this.showModal = false;
         }, 1000);
-        // this.coupon = item.coupon_detail_id;
         let res = await this.$HTTP.post(this.HOST + "/api/quickpay/preorder", {
           store_id: 49,
           bill_amount: this.value,
           is_use_points: this.is_use_points,
           coupon_detail_id: item.coupon_detail_id
         });
-        // this.isShowMoney = true;
-        // this.isShowDiscount = true;
         this.coupon_detail_id=item.coupon_detail_id
         this.isCoupon = false
         this.isMoney = true
@@ -400,17 +490,121 @@
       },
       //点击底部按钮
       async createOrder(){
+
+        if(this.pattern=="wx"&&this.isShowLogo==true){
           //创建订单
-        let res = await this.$HTTP.post(this.HOST + "/api/quickpay/save/order", {
-          store_id: 49,
-          bill_amount: this.moneyValue,
-          is_use_points: this.is_use_points,
-          coupon_detail_id: this.coupon_detail_id,
-          remarks:this.remarks,
-          no_dis_amount:this.inputValue
-        });
+          let res = await this.$HTTP.post(this.HOST + "/api/quickpay/save/order", {
+            store_id: 49,
+            bill_amount: this.moneyValue,
+            is_use_points: this.is_use_points,
+            coupon_detail_id: this.coupon_detail_id,
+            remarks:this.remarks,
+            no_dis_amount:this.inputValue
+          });
+          this.trade_id=res.data.result.trade_id
+          //发起支付
+          let startRes = await this.$HTTP.post(this.HOST +"/api/pay/create", {
+            trade_id:this.trade_id,
+            pay_way:this.pattern
+          });
+          if(startRes.data.error_code==1){
+            this.showErrorMsg=true
+            this.error=startRes.data.error_msg
+            setTimeout(()=>{
+              this.showErrorMsg=false
+            },2000)
+          }
+          let data = startRes.data.result.pay_data;
+          this.weixinPay(data)
+        }else if(this.isSaveLogo!=true&&this.isSaveLogo!=true){
+          let res = await this.$HTTP.post(this.HOST + "/api/wallet/fund", {
+            tem_id:this.id,
+            store_id:49
+          });
+        }
+      },
+      weixinPay(data) {
+        var vm = this;
+        if (typeof WeixinJSBridge == "undefined") {
+          //微信浏览器内置对象。参考微信官方文档
+          if (document.addEventListener) {
+            document.addEventListener(
+              "WeixinJSBridgeReady",
+              vm.onBridgeReady(data),
+              false
+            );
+          } else if (document.attachEvent) {
+            document.attachEvent("WeixinJSBridgeReady", vm.onBridgeReady(data));
+            document.attachEvent("onWeixinJSBridgeReady", vm.onBridgeReady(data));
+          }
+        } else {
+          vm.onBridgeReady(data);
+        }
+      },
+      /**
+       * @method 支付费用方法
+       * @param data:后台返回的支付对象,(详情微信公众号支付API中H5提交支付);
+       */
+      onBridgeReady: function(data) {
+        var vm = this;
+        WeixinJSBridge.invoke(
+          "getBrandWCPayRequest",
+          {
+            appId: data.appId, //公众号名称，由商户传入
+            timeStamp: data.timeStamp, //时间戳，自1970年以来的秒数
+            nonceStr: data.nonceStr, //随机串
+            package: data.package,
+            signType: data.signType, //微信签名方式：
+            paySign: data.paySign //微信签名
+          },
+          async function(res) {
+            // 使用以上方式判断前端返回,微信团队郑重提示：res.err_msg将在用户支付成功后返回ok，但并不保证它绝对可靠。
+            if (res.err_msg == "get_brand_wcpay_request：ok") {
+              console.log(vm.errorMsg);
+              vm.errorMsg = true;
+              console.log(1);
+            } else {
+              await Toast.loading({
+                mask: true,
+                message: "支付中",
+                duration: 60000
+              });
+              vm.iCount = setInterval(function() {
+                vm.query();
+              }, 1000);
+
+            }
+          }
+        );
+      },
+      query() {
+        this.$HTTP
+          .post(this.HOST + "/api/pay/query",{trade_id: this.trade_id })
+          .then(res => {
+            this.queryTradecount++;
+            if (res.data.error_code == 3) {
+              if (this.queryTradecount >= 60) {
+                clearInterval(this.iCount);
+                setTimeout(()=>{
+                  this.payError = true;
+                },6000)
+              }
+            } else if (res.data.error_code == 2) {
+              clearInterval(this.iCount);
+              console.log(1)
+              this.payError = true;
+            } else if (res.data.error_code == 0) {
+               Toast.clear();
+              clearInterval(this.iCount);
+              this.$router.push("/paySuccess");
+            }
+          })
+          .catch(error => {
+            clearInterval(this.iCount);
+          });
       },
     },
+
     watch: {
       monitoringValue: function () {
         //定时器
@@ -483,7 +677,10 @@
             this.moneyValue = this.pay_amount
             this.butDescribe = '充值并买单'
           }
-        }, 500);
+          if(this.isSaveLogo==true){
+            this.butDescribe="确认买单"
+          }
+        },1000);
       },
     },
   }
@@ -495,10 +692,10 @@
     height: 100%;
     & .error {
       background-color: #dd2726;
-      line-height: 30px;
+      line-height: 1.5rem;
       text-align: center;
       color: #ebf1f5;
-      font-size: 15px;
+      font-size: 0.75rem;
     }
     /*第一card样式*/
     & .header-card {
@@ -795,6 +992,18 @@
       background: #dd2726;
       border-radius: 0.25rem;
       outline: none;
+      font-family:PingFang-SC-Medium;
+      border: none;
+    }
+    & .button-forbidden {
+      height: 2.2rem;
+      width: 100%;
+      font-family:PingFang-SC-Medium;
+      color:rgba(255,147,141,0.5);
+      font-size: 0.8rem;
+      background: #dd2726;
+      border-radius: 0.25rem;
+      outline: none;
       border: none;
     }
   }
@@ -959,6 +1168,139 @@
             width: 2rem;
             height: 2rem;
           }
+        }
+      }
+    }
+  }
+  /*支付异常弹出框样式*/
+  .pay-mask {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 9000;
+    & .pay-dialog {
+      border-radius: 0.25rem;
+      height: 8.85rem;
+      width: 14rem;
+      overflow: hidden;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      margin: -8rem 2.5rem;
+      & .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        & .container-img {
+          width: 2.25rem;
+          height: 2.25rem;
+          padding: 1rem;
+        }
+        & .pay-title {
+          font-size: 0.8rem;
+          color: #12263c;
+        }
+      }
+      & .pay-footer {
+        & .btn-confirm {
+          margin-top: 1rem;
+          border-top: 1px solid #f0f0f0;
+          text-align: center;
+          line-height: 2rem;
+          color: #d43b33;
+          font-size: 0.8rem;
+        }
+      }
+    }
+  }
+  /*添加优惠券弹出框*/
+  .add-mask {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 999999;
+    & .error {
+      background-color: #dd2726;
+      line-height: 1.5rem;
+      text-align: center;
+      color: #ebf1f5;
+      font-size: 0.75rem;
+    }
+    & .add-dialog {
+      border-radius: 0.25rem;
+      height: 8.85rem;
+      width: 14rem;
+      overflow: hidden;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      margin: -6rem 3.5rem;
+      & .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        & .add-title {
+          padding: 0.75rem;
+          font-size: 0.9rem;
+          color: #000000;
+        }
+      }
+      & .add-font {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        & .add-input {
+          width: 12rem;
+          height: 2.2rem;
+          border: 1px solid #e7e7e7;
+          font-size: 0.8rem;
+          outline: medium;
+          padding-left: 1rem;
+          border-radius: 0.25rem;
+          background-color: #fbfafc;
+        }
+        input::placeholder {
+          color: #b2b2b2;
+          font-size: 0.8rem;
+        }
+      }
+      & .add-footer {
+       overflow: hidden;
+        display:flex;
+        margin-top: 1.9rem;
+        flex-direction: row;
+        height: 2.3rem;
+        border-top: 1px solid #dedede;
+        line-height: 2.3rem;
+        & .btn-cancel {
+          width: 50%;
+          text-align: center;
+          font-size: 0.9rem;
+          color: #515151;
+          background-color: #fbfafc;
+        }
+        & .btn-confirm {
+          overflow: hidden;
+          outline: none;
+          width: 50%;
+          text-align: center;
+          font-size: 0.9rem;
+          color: #e66363;
+          background-color: #dd2726;
         }
       }
     }
