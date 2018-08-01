@@ -3,6 +3,7 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import fastclick from 'fastclick'
 import './styles.scss'
 import HTTP from 'axios'
 import  PROPERTYNAME from './lib/propertyName'
@@ -11,6 +12,7 @@ import {Toast,PullRefresh,Button} from 'vant'
 [Toast,PullRefresh,Button].map(item => {
   Vue.use(item)
 })
+fastclick.attach(document.body)
 
 //配置通用axios请求
 Vue.prototype.$HTTP = HTTP

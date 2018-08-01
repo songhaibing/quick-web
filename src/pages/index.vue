@@ -640,6 +640,7 @@ export default {
 .mainer {
   height: 100%;
   overflow: hidden;
+
   & .header {
     height: 100%;
     background-color: white;
