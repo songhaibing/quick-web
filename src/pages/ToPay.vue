@@ -228,7 +228,6 @@
         isSaveLogo: '',
         arrTemplate: [],
         pay_way: '',
-        pattern:'',
         Index: null,
         amount: '',
         gift_amount: null,
@@ -269,6 +268,15 @@
       //是否使用积分
       is_use_points(){
           return  this.isShowXuanZhong? 1 : 0
+      },
+      pattern(){
+        if(this.isShowLogo){
+          return 'wx'
+        }else if(this.isSaveLogo){
+          return 'wallet'
+        }else {
+          return 'alipay'
+        }
       }
 
     },
@@ -370,11 +378,9 @@
         var browser = navigator.userAgent.toLowerCase();
         if (browser.match(/Alipay/i) == "alipay") {
           this.pay_way = "支付宝支付";
-          this.pattern='alipay'
           console.log('这是支付宝浏览器')
         } else if (browser.match(/MicroMessenger/i) == "micromessenger") {
           this.pay_way = "微信支付";
-          this.pattern='wx'
           console.log('这是微信浏览器')
         } else {
           console.log("其它浏览器");
@@ -460,6 +466,7 @@
       //点击不使用优惠券底部弹出框消失
       async noUse() {
         this.showModal = false;
+
         this.coupon_detail_id = 0;
         let res = await this.$HTTP.post(this.HOST + "/api/quickpay/preorder", {
           store_id: 49,
@@ -505,18 +512,18 @@
       },
       //点击底部按钮
       async createOrder(){
-
+        //创建订单
+        let res = await this.$HTTP.post(this.HOST + "/api/quickpay/save/order", {
+          store_id: 49,
+          bill_amount: this.moneyValue,
+          is_use_points: this.is_use_points,
+          coupon_detail_id: this.coupon_detail_id,
+          remarks:this.remarks,
+          no_dis_amount:this.inputValue
+        });
+        this.trade_id=res.data.result.trade_id
+        localStorage.setItem("trade_id",res.data.result.trade_id)
         if(this.pattern=="wx"&&this.isShowLogo==true){
-          //创建订单
-          let res = await this.$HTTP.post(this.HOST + "/api/quickpay/save/order", {
-            store_id: 49,
-            bill_amount: this.moneyValue,
-            is_use_points: this.is_use_points,
-            coupon_detail_id: this.coupon_detail_id,
-            remarks:this.remarks,
-            no_dis_amount:this.inputValue
-          });
-          this.trade_id=res.data.result.trade_id
           //发起支付
           let startRes = await this.$HTTP.post(this.HOST +"/api/pay/create", {
             trade_id:this.trade_id,
@@ -531,11 +538,14 @@
           }
           let data = startRes.data.result.pay_data;
           this.weixinPay(data)
-        }else if(this.isSaveLogo!=true&&this.isSaveLogo!=true){
-          let res = await this.$HTTP.post(this.HOST + "/api/wallet/fund", {
-            tem_id:this.id,
-            store_id:49
+        }else if(this.isSaveLogo==true&&this.pattern=="wallet"){
+          let res = await this.$HTTP.post(this.HOST + "/api/pay/create", {
+            pay_way:this.pattern,
+            trade_id:this.trade_id
           });
+          if(res.data.error_code==0&&res.data.result.status==1){
+              this.$router.push('/paySuccess')
+          }
         }
       },
       weixinPay(data) {
@@ -625,7 +635,6 @@
         this.res1=res1
       }
     },
-
     watch: {
       monitoringValue: function () {
         //定时器
@@ -638,6 +647,7 @@
             coupon_detail_id: this.coupon_detail_id,
             no_dis_amount: this.inputValue
           });
+          this.coupon_detail_id=0
           this.max_coupon_dis_amount = res.data.result.max_coupon_dis_amount;
           let that = this;
           let arr1 = this.res1.data.result.filter(function (s) {
@@ -667,11 +677,9 @@
             ).toFixed(2);
           }
           this.pay_amount = Number(res.data.result.pay_amount).toFixed(2);
-
           let arr4 = arr5.concat(arr2);
           this.res = arr4.concat(arr3);
           this.arrNum = this.res1.data.result.length - arr3.length - arr2.length
-
           if (+this.pay_amount > +this.balance) {
             this.isShowLogo = true
           } else {
@@ -684,6 +692,9 @@
           }
           if (this.isShowLogo) {
             this.isSaveLogo = false
+          }
+          if(this.isSaveLogo==true||this.isShowLogo==true){
+            this.cShow=false
           }
           if (this.isMoney == false) {
             this.isCoupon = true

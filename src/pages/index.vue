@@ -458,6 +458,7 @@ export default {
     async whether(item, index) {
      this.coupon_type=item.coupon_type
       this.nowIndex = index;
+     if(this.)
       setTimeout(() => {
         this.showModal = false;
       }, 1000);

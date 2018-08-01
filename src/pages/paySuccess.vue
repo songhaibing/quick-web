@@ -2,36 +2,35 @@
     <div class="main">
       <div class="header">
         <img  class="header-img" src="/static/success@3x.png">
-        <div class="header-font">600.00</div>
+        <div class="header-font">{{amount}}</div>
       </div>
       <div class="wire1"></div>
       <div class="center">
         <div class="center-container">
           <div class="pay-font">消费金额</div>
-          <div class="pay-mun">800.00</div>
+          <div class="pay-mun">{{bill_amount}}</div>
         </div>
         <div class="center-container">
           <span class="pay-font">优惠金额</span>
-          <span  class="pay-mun">200.00</span>
+          <span  class="pay-mun">{{dis_amount}}</span>
         </div>
         <div class="wire"></div>
       </div>
       <div class="footer">
         <div class="footer-font">交易时间</div>
-        <div class="footer-time">2018-06-20</div>
-        <div class="pay-time">10:22:36</div>
+        <div class="footer-time">{{time}}</div>
       </div>
       <div class="footer">
         <div class="footer-font">订单编号</div>
-        <div class="pay-time">CA14546051NJMSHN152</div>
+        <div class="pay-time">{{no}}</div>
       </div>
       <div class="footer">
         <div class="footer-font">会员卡余额</div>
-        <div class="pay-time">10:22:36</div>
+        <div class="pay-time">{{balance}}</div>
       </div>
       <div class="footer">
         <div class="footer-font">当前积分</div>
-        <div class="pay-time">20576</div>
+        <div class="pay-time">{{points}}</div>
       </div>
       <div class="btn">
         <button class="footer-button">完成</button>
@@ -42,7 +41,39 @@
 
 <script>
     export default {
-        name: "pay-success"
+        name: "pay-success",
+      data(){
+          return{
+            amount:null,
+            no:null,//订单号
+            time:null,//订单完成时间
+            points:null,//当前积分
+            dis_amount:null,//优惠金额
+            balance:null,//会员卡余额
+            bill_amount:null//应收金额
+          }
+      },
+      methods:{
+        async getQuery(){
+            let id=localStorage.getItem('trade_id')
+             let res = await this.$HTTP.post(this.HOST + "/api/pay/query", {
+              trade_id:id
+             });
+
+            this.amount=Number(res.data.result.amount).toFixed(2)
+            this.no=res.data.result.no
+            this.time=res.data.result.time
+            this.points=res.data.result.points
+            this.dis_amount=Number(res.data.result.dis_amount).toFixed(2)
+            this.balance=Number(res.data.result.balance).toFixed(2)
+            this.bill_amount=Number(res.data.result.bill_amount).toFixed(2)
+            console.log(id)
+            console.log(res)
+          }
+      },
+      created(){
+          this.getQuery()
+      }
     }
 </script>
 
