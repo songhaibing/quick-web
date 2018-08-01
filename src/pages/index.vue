@@ -446,6 +446,7 @@ export default {
     //点击不使用优惠券底部弹出框消失
     async noUse() {
       this.showModal = false;
+
       this.coupon_detail_id = 0;
       let res = await this.$HTTP.post(this.HOST + "/api/quickpay/preorder", {
         store_id: 49,
