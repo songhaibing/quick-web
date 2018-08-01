@@ -250,8 +250,8 @@
         showError: false,//优惠码错误码显隐
         code: "",
         queryTradecount: 0,
-        id:null
-
+        id:null,
+        res1:null
       }
     },
     async created() {
@@ -259,6 +259,7 @@
       await this.isShowSaveValue()
       await this.payWay()
       await this.getBalance()
+      await this.getCoupons()
     },
     computed: {
       //消费金额减去不参与优惠金额
@@ -326,6 +327,10 @@
           this.isSaveLogo = false
           this.isShowLogo = false
         }
+        // if(this.aShow=true&& this.Index==index){
+        //   this.isShowLogo=false
+        //   this.isSaveLogo=false
+        // }
         if (item.amount + item.gift_amount + (+this.balance) < +this.pay_amount) {
           this.showErrorValue = true
           this.aShow = false
@@ -340,8 +345,12 @@
           this.bShow = false
           this.cShow = true
         }
-        if (this.limit_time > 0 && this.amount < this.pay_amount) {
+        if (this.limit_time > 0 && this.amount+this.balance < this.pay_amount) {
           this.timeError = true
+          this.Index!=index
+          this.bShow=true
+          this.aShow=false
+          this.cShow=false
           this.showErrorValue = false
           setTimeout(() => {
             this.timeError = false
@@ -349,9 +358,12 @@
         }
         if (this.Index == index && this.aShow) {
           this.isShowSymbol = true
+          this.isSaveLogo=false
+          this.isShowLogo=false
           this.moneyValue = item.amount
           this.butDescribe = '充值并买单'
         }
+
       },
       // 判断页面是在支付宝页面还是微信页面
       payWay() {
@@ -381,6 +393,9 @@
           this.aShow = false
           this.bShow = true
           this.cShow = false
+        }
+        if(this.pay_amount>this.balance){
+          this.isSaveLogo=false
         }
       },
       //用微信支付或者支付宝
@@ -591,7 +606,6 @@
               }
             } else if (res.data.error_code == 2) {
               clearInterval(this.iCount);
-              console.log(1)
               this.payError = true;
             } else if (res.data.error_code == 0) {
                Toast.clear();
@@ -603,6 +617,13 @@
             clearInterval(this.iCount);
           });
       },
+      async getCoupons(){
+        let res1 = await this.$HTTP.post(this.HOST + "/api/quickpay/coupons", {
+            store_id: 49
+          });
+        localStorage.setItem('res1',res1)
+        this.res1=res1
+      }
     },
 
     watch: {
@@ -618,20 +639,17 @@
             no_dis_amount: this.inputValue
           });
           this.max_coupon_dis_amount = res.data.result.max_coupon_dis_amount;
-          let res1 = await this.$HTTP.post(this.HOST + "/api/quickpay/coupons", {
-            store_id: 49
-          });
           let that = this;
-          let arr1 = res1.data.result.filter(function (s) {
+          let arr1 = this.res1.data.result.filter(function (s) {
             return that.max_coupon_dis_amount >= s.least_cost;
           });
           let arr5 = arr1.filter(function (s) {
             return s.use_status == true;
           });
-          let arr2 = res1.data.result.filter(function (s) {
+          let arr2 = this.res1.data.result.filter(function (s) {
             return !(that.max_coupon_dis_amount >= s.least_cost);
           });
-          let arr3 = res1.data.result.filter(function (s) {
+          let arr3 = this.res1.data.result.filter(function (s) {
             return s.use_status == false;
           });
           if (true) {
@@ -652,12 +670,17 @@
 
           let arr4 = arr5.concat(arr2);
           this.res = arr4.concat(arr3);
-          this.arrNum = res1.data.result.length - arr3.length - arr2.length
+          this.arrNum = this.res1.data.result.length - arr3.length - arr2.length
+
           if (+this.pay_amount > +this.balance) {
             this.isShowLogo = true
           } else {
             this.isShowLogo = false
             this.isSaveLogo = true
+          }
+          if(this.isSaveLogo==true){
+            this.aShow=false
+            this.bShow=true
           }
           if (this.isShowLogo) {
             this.isSaveLogo = false
@@ -681,7 +704,13 @@
             this.butDescribe="确认买单"
           }
         },1000);
+
       },
+      inputValue:function () {
+        if(+this.inputValue>+this.value){
+          this.inputValue=this.value
+        }
+      }
     },
   }
 </script>
