@@ -7,10 +7,10 @@
       <div class="top">
         <div class="main" @click="isShow" v-show="isHide">
           <div class="main-container">
-            <img class="main-logo" src="/static/logo1@3x.png" alt="logo">
+            <img class="main-logo" :src="src" alt="logo">
             <span class="main-font">{{payFont}}会员，享受更多优惠</span>
           </div>
-          <img class="right-logo" src="/static/logo2@3x.png" alt="logo">
+          <img class="right-logo" src="../../static/logo2@3x.png" alt="logo">
         </div>
         <div class="error" v-show="errorMsg">{{error_msg}}</div>
         <div class="error" v-show="showErrorMsg">{{error}}</div>
@@ -29,7 +29,7 @@
               <span class="discount-num" v-show="coupon_type==2">{{discountNum}}折</span>
               <span class="center-num" :class="{centerNum1:coupon_type!==2}" v-show="isShowDiscount">减{{coupon_dis_amount}}</span>
             </div>
-            <img class="center-logo" src="/static/logo2@3x.png" alt="logo">
+            <img class="center-logo" :src="src1" alt="logo">
           </div>
           <div class="cope" v-show="isShowMoney">
             <div class="cope-font">应付金额</div>
@@ -38,7 +38,7 @@
           <div class="footer">
             <input v-model="remarks" class="footer-input" placeholder="添加备注"/>
             <div @click="clearValue">
-              <img class="footer-logo" src="/static/logo3@3x.png" alt="logo"/>
+              <img class="footer-logo" :src="src2" alt="logo"/>
             </div>
           </div>
         </div>
@@ -193,6 +193,9 @@ import { Toast } from "vant";
 export default {
   data() {
     return {
+      src:require('../../static/logo1@3x.png'),
+      src1:require('../../static/logo2@3x.png'),
+      src2:require('../../static/logo3@3x.png'),
       payError: false,
       res: [],
       disabled: false,
@@ -459,7 +462,7 @@ export default {
     async whether(item, index) {
      this.coupon_type=item.coupon_type
       this.nowIndex = index;
-     if(this.)
+     if(this.coupon_type)
       setTimeout(() => {
         this.showModal = false;
       }, 1000);
